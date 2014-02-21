@@ -226,10 +226,23 @@ function buildV8() {
     popd > /dev/null || err
 }
 
+function buildLucene() {
+  echo "whatever"
+	# TODO: Actually build lucene. Copying files here so I have a record of what I needed
+#	pushd clucene/bin > /dev/null
+#	cp libclucene-core.so ../../src/EventStore/libs || err
+#	cp libclucene-shared.so ../../src/EventStore/libs || err
+#	popd > /dev/null
+#
+#	pushd clucene/
+# Okay actually, there are header files all over the show, probably easier to just set up locations
+
+}
+
 function buildJS1() {
     currentDir=$(pwd -P)
-    includeString="-I $currentDir/src/EventStore/libs/include"
-    libsString="-L $currentDir/src/EventStore/libs"
+    includeString="-I $currentDir/src/EventStore/libs/include -I $currentDir/clucene/src/shared -I $currentDir/clucene/src/core -I $currentDir/jsoncpp/jsoncpp/include"
+    libsString="-L $currentDir/src/EventStore/libs -L $currentDir/clucene/bin -L $currentDir/jsoncpp/jsoncpp/lib"
     outputDir="$currentDir/src/EventStore/libs"
 
     pushd $currentDir/src/EventStore/EventStore.Projections.v8Integration/ > /dev/null || err
@@ -240,7 +253,7 @@ function buildJS1() {
         gccArch="-arch amd64"
     fi
 
-    g++ $includeString $libsString *.cpp -o $outputDir/libjs1.so $gccArch -lv8 -O2 -fPIC --shared --save-temps -std=c++0x || err
+    g++ $includeString $libsString *.cpp -o $outputDir/libjs1.so $gccArch -lv8 -lclucene-core -lclucene-shared -ljsoncpp  -O2 -fPIC --shared --save-temps -std=c++0x || err
     popd > /dev/null || err
 }
 

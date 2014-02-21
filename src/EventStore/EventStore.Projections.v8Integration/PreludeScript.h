@@ -34,6 +34,7 @@ namespace js1 {
 	private:
 		v8::Isolate *isolate;
 		std::shared_ptr<v8::Persistent<v8::Function>> global_template_factory;
+    
 		LOAD_MODULE_CALLBACK load_module_handler;
 		LOG_CALLBACK log_handler;
 		ENTER_CANCELLABLE_REGION enter_cancellable_region_callback;

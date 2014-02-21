@@ -7,6 +7,7 @@
 #include "PreludeScript.h"
 #include "QueryScript.h"
 #include "PreludeScope.h"
+#include "Indexing.h"
 
 extern "C" 
 {
@@ -183,6 +184,25 @@ extern "C"
 		js1::PreludeScope prelude_scope(query_script);
 
 		query_script->report_errors(report_error_callback);
+	}
+
+	JS1_API void* STDCALL open_indexing_system(const char* index_path, LOG_CALLBACK logger)
+	{
+		return new js1::LuceneEngine(index_path, logger);
+	}
+
+	JS1_API void STDCALL handle_indexing_command(void* handle, const char *cmd, const char *body) 
+	{
+		js1::LuceneEngine *engine;
+		engine = reinterpret_cast<js1::LuceneEngine *>(handle);
+		engine->handle(cmd, body);
+	}
+
+	JS1_API void STDCALL close_indexing_system(void* handle) 
+	{
+		js1::LuceneEngine *engine;
+		engine = reinterpret_cast<js1::LuceneEngine *>(handle);
+		delete engine;
 	}
 }
 

@@ -4,6 +4,9 @@
 /Data-logs
 /src/EventStore/v8
 /v8/
+/clucene/
+/jsoncpp/
+
 ipch/
 *.o
 *.ii
@@ -87,3 +90,7 @@ _dotCover.*
 
 # Mac
 .DS_Store
+
+# Vim
+tags
+.vim.custom

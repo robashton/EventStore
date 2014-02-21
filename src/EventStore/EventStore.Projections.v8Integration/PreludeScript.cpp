@@ -193,6 +193,5 @@ namespace js1
 		}
 		args.GetReturnValue().Set(module->get_module_object());
 	};
-
 }
 

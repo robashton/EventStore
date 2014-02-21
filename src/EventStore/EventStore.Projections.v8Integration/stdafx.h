@@ -8,6 +8,7 @@
 #include <list>
 #include <vector>
 #include <string>
+#include <sstream>
 
 #if __GNUC__ >= 4
 #include <memory>

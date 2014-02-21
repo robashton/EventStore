@@ -27,6 +27,7 @@
 // 
 using System;
 using System.Runtime.InteropServices;
+using EventStore.Projections.Core.Utils;
 
 namespace EventStore.Projections.Core.v8
 {
@@ -92,6 +93,22 @@ namespace EventStore.Projections.Core.v8
 
         [DllImport("js1", EntryPoint = "report_errors")]
         public static extern void ReportErrors(IntPtr scriptHandle, ReportErrorDelegate reportErrorCallback);
+
+        [DllImport("js1", EntryPoint = "open_indexing_system")]
+        public static extern IntPtr OpenIndexingSystem(
+			[MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef=typeof(UTF8Marshaler))
+			string indexing_path, LogDelegate logger);
+
+        [DllImport("js1", EntryPoint = "handle_indexing_command")]
+        public static extern void HandleIndexCommand(
+			IntPtr handle,
+			[MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef=typeof(UTF8Marshaler))]
+            string command, 
+            [MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef=typeof(UTF8Marshaler))]
+			string body);
+
+        [DllImport("js1", EntryPoint = "close_indexing_system")]
+        public static extern void CloseIndexingSystem(IntPtr handle);
 
     }
 }

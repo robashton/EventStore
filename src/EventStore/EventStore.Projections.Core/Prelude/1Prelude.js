@@ -232,6 +232,37 @@ function scope($on, $notify) {
         eventProcessor.emit(message);
     }
 
+    function startIndex(indexName) {
+		var eventBody = {  indexName: indexName };
+		var message = { 
+		  streamId: '$indexing', 
+		  eventName: 'index-creation-requested', 
+		  body: JSON.stringify(eventBody), 
+		  isJson: true };
+		eventProcessor.emit(message);
+    }
+
+    function createIndexItem(indexName, itemId, fields) {
+        var eventBody = { indexName: indexName, itemId: itemId, fields: fields};
+		var message = { 
+		  streamId: '$indexing', 
+		  eventName: 'item-created', 
+		  body: JSON.stringify(eventBody), 
+		  isJson: true };
+		eventProcessor.emit(message);
+    }
+
+    function updateIndexItem(indexName, itemId, fields) {
+        var eventBody = { indexName: indexName, itemId: itemId, fields: fields};
+		var message = { 
+		  streamId: '$indexing', 
+		  eventName: 'item-updated', 
+		  body: JSON.stringify(eventBody), 
+		  isJson: true };
+		eventProcessor.emit(message);
+    }
+
+
     function linkTo(streamId, event, metadata) {
         var message = { streamId: streamId, eventName: "$>", body: event.sequenceNumber + "@" + event.streamId, metadata: metadata, isJson: false };
         eventProcessor.emit(message);
@@ -276,6 +307,10 @@ function scope($on, $notify) {
         fromStreams: fromStreams,
         fromStreamCatalog: fromStreamCatalog,
         fromStreamsMatching: fromStreamsMatching,
+
+        createIndexItem: createIndexItem,
+        startIndex: startIndex,
+        updateIndexItem: updateIndexItem,
 
         options: options,
         emit: emit, 

@@ -34,4 +34,10 @@ extern "C"
 	JS1_API void STDCALL terminate_execution(void *script_handle);
 
 	JS1_API void report_errors(void *script_handle, REPORT_ERROR_CALLBACK report_error_callback);
+
+	// TODO: give this its own interface as it is nothing to do with JS at all!
+	JS1_API void* open_indexing_system(const char* indexing_path, LOG_CALLBACK logger);
+	JS1_API void handle_indexing_command(void* handle, const char *cmd, const char *body);
+	JS1_API void close_indexing_system(void* handle);
+
 }
