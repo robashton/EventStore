@@ -353,6 +353,7 @@
     <Compile Include="Services\v8\when_running_a_v8_projection_emitting_stream_links.cs" />
     <Compile Include="Services\v8\when_running_a_v8_projection_with_not_passing_filter_by.cs" />
     <Compile Include="Services\v8\when_running_a_v8_projection_with_transform_by.cs" />
+    <Compile Include="Services\v8\when_creating_an_index.cs" />
     <Compile Include="Services\v8\when_running_bi_state_v8_projection.cs" />
     <Compile Include="Services\v8\when_running_body_reflecting_v8_projection.cs" />
     <Compile Include="Services\v8\when_running_emitting_v8_projection.cs" />
