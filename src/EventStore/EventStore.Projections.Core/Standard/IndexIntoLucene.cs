@@ -86,6 +86,17 @@ namespace EventStore.Projections.Core.Standard
             throw new NotImplementedException();
         }
 
+        public bool ProcessPartitionCreated(string partition, CheckpointTag createPosition, ResolvedEvent data, out EmittedEventEnvelope[] emittedEvents)
+        {
+            emittedEvents = null;
+            return false;
+        }
+
+        public bool ProcessPartitionDeleted(string partition, CheckpointTag deletePosition, out string newState)
+        {
+            throw new NotImplementedException();
+        }
+
         public string TransformCatalogEvent(CheckpointTag eventPosition, ResolvedEvent data)
         {
             throw new NotImplementedException();

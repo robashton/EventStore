@@ -267,7 +267,6 @@ namespace EventStore.Core.Bus
             _chaserCheckpoint = chaserCheckpoint;
             _writerCheckpoint = writerCheckpoint;
         }
-#endif
 
         [Conditional("DEBUG")]
         public void Enqueued()
@@ -280,6 +279,7 @@ namespace EventStore.Core.Bus
         {
             Interlocked.Decrement(ref _length);
         }
+#endif
     }
 }
 
