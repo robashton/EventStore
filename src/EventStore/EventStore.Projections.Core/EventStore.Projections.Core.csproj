@@ -159,6 +159,7 @@
 	<Compile Include="Indexing\IndexingSystem.cs" />
 	<Compile Include="Indexing\IndexingWorker.cs" />
     <Compile Include="Messages\AwakeReaderServiceMessage.cs" />
+    <Compile Include="Messages\IndexingMessage.cs" />
     <Compile Include="Messages\CoreProjectionManagementMessage.cs" />
     <Compile Include="Messages\CoreProjectionProcessingMessage.cs" />
     <Compile Include="Messages\EventReaders\Feeds\FeedReaderMessage.cs" />
