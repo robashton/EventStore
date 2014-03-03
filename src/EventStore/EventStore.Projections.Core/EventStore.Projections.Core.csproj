@@ -154,6 +154,10 @@
   <ItemGroup>
     <Compile Include="EventReaders\Feeds\FeedReader.cs" />
     <Compile Include="EventReaders\Feeds\FeedReaderService.cs" />
+	<Compile Include="Indexing\IndexingController.cs" />
+	<Compile Include="Indexing\IndexingReader.cs" />
+	<Compile Include="Indexing\IndexingSystem.cs" />
+	<Compile Include="Indexing\IndexingWorker.cs" />
     <Compile Include="Messages\AwakeReaderServiceMessage.cs" />
     <Compile Include="Messages\CoreProjectionManagementMessage.cs" />
     <Compile Include="Messages\CoreProjectionProcessingMessage.cs" />
