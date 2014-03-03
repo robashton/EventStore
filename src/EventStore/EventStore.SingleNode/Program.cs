@@ -45,6 +45,7 @@ namespace EventStore.SingleNode
     {
         private SingleVNode _node;
         private Projections.Core.ProjectionsSubsystem _projections;
+		private Projections.Core.Indexing.IndexingSystem _indexing;
         private readonly DateTime _startupTimeStamp = DateTime.UtcNow;
         private ExclusiveDbLock _dbLock;
 
@@ -101,7 +102,8 @@ namespace EventStore.SingleNode
                 ? new[] {NodeSubsystems.Projections}
                 : new NodeSubsystems[0];
             _projections = new Projections.Core.ProjectionsSubsystem(opts.ProjectionThreads, runProjections);
-            _node = new SingleVNode(db, vnodeSettings, dbVerifyHashes, ESConsts.MemTableEntryCount, _projections);
+			_indexing = new Projections.Core.Indexing.IndexingSystem(runProjections);
+            _node = new SingleVNode(db, vnodeSettings, dbVerifyHashes, ESConsts.MemTableEntryCount, _projections, _indexing);
             RegisterWebControllers(enabledNodeSubsystems);
             RegisterUIProjections();
         }
