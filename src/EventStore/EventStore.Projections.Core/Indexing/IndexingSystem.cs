@@ -84,7 +84,7 @@ namespace EventStore.Projections.Core.Indexing
 
 		private QueuedHandler _webQueue;
 		private IndexingController _web;
-
+		private Lucene _lucene;
 
         public Indexing(
             TFChunkDb db, QueuedHandler mainQueue, ISubscriber mainBus, TimerService timerService, ITimeProvider timeProvider,
@@ -114,7 +114,9 @@ namespace EventStore.Projections.Core.Indexing
 			var coreQueue = new QueuedHandler(coreInputBus, "Indexing Core #" + _coreQueues.Count, groupName: "Indexing Core");
 
 			// Only one worker to process all the things
-			_worker = new IndexingWorker(db, coreQueue, timeProvider, runProjections);
+			// TODO: Consider disposal
+			_lucene = Lucene.Create();
+			_worker = new IndexingWorker(db, coreQueue, timeProvider, runProjections, _lucene);
 			_worker.SetupMessaging(coreInputBus);
 
 			// Need these for subscriptions

@@ -63,17 +63,20 @@ namespace EventStore.Projections.Core.Indexing
         private Guid _subscriptionId;
         private CheckpointTag _lastReaderPosition;
         private readonly CheckpointTag _fromPosition;
+		private readonly Lucene _lucene;
 
         public IndexingReader(
             PublishSubscribeDispatcher
                 <Guid, ReaderSubscriptionManagement.Subscribe,
                 ReaderSubscriptionManagement.ReaderSubscriptionManagementMessage, EventReaderSubscriptionMessage>
-                subscriptionDispatcher, ITimeProvider timeProvider)
+                subscriptionDispatcher, ITimeProvider timeProvider,
+				Lucene lucene)
         {
             if (subscriptionDispatcher == null) throw new ArgumentNullException("subscriptionDispatcher");
             _subscriptionDispatcher = subscriptionDispatcher;
             _timeProvider = timeProvider;
 			_fromPosition = CheckpointTag.FromStreamPosition(0, "$indexing", -1);
+			_lucene = lucene;
 			_logger.Info("Creating a goddamned IndexingReader");
         }
 
@@ -132,7 +135,7 @@ namespace EventStore.Projections.Core.Indexing
 
         private void Flush()
         {
-
+			_logger.Info("Flushing");
         }
     }
 }

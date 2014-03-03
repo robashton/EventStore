@@ -155,6 +155,7 @@
     <Compile Include="EventReaders\Feeds\FeedReader.cs" />
     <Compile Include="EventReaders\Feeds\FeedReaderService.cs" />
 	<Compile Include="Indexing\IndexingController.cs" />
+	<Compile Include="Indexing\Lucene.cs" />
 	<Compile Include="Indexing\IndexingReader.cs" />
 	<Compile Include="Indexing\IndexingSystem.cs" />
 	<Compile Include="Indexing\IndexingWorker.cs" />
@@ -323,7 +324,6 @@
     <Compile Include="Standard\CategorizeStreamByPath.cs" />
     <Compile Include="Standard\IndexEventsByEventType.cs" />
     <Compile Include="Standard\IndexStreams.cs" />
-    <Compile Include="Standard\IndexIntoLucene.cs" />
     <Compile Include="Standard\StreamCategoryExtractor.cs" />
     <Compile Include="Standard\StreamCategoryExtractorByFirstSeparator.cs" />
     <Compile Include="Standard\StreamCategoryExtractorByLastSeparator.cs" />

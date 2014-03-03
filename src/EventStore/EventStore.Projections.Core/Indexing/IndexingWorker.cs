@@ -52,8 +52,9 @@ namespace EventStore.Projections.Core.Indexing
         private readonly IODispatcher _ioDispatcher;
 		private IndexingReader _reader;
 		private readonly ITimeProvider _timeProvider;
+		private readonly Lucene _lucene;
 
-        public IndexingWorker(TFChunkDb db, QueuedHandler inputQueue, ITimeProvider timeProvider, RunProjections runProjections)
+        public IndexingWorker(TFChunkDb db, QueuedHandler inputQueue, ITimeProvider timeProvider, RunProjections runProjections, Lucene lucene)
         {
             _runProjections = runProjections;
             Ensure.NotNull(db, "db");
@@ -66,6 +67,7 @@ namespace EventStore.Projections.Core.Indexing
             _ioDispatcher = new IODispatcher(publisher, new PublishEnvelope(inputQueue));
             _eventReaderCoreService = new EventReaderCoreService(
                 publisher, _ioDispatcher, 10, db.Config.WriterCheckpoint, runHeadingReader: runProjections >= RunProjections.System);
+			_lucene = lucene;
         }
 
         public InMemoryBus CoreOutput
@@ -74,7 +76,7 @@ namespace EventStore.Projections.Core.Indexing
         }
 
 		public void Handle(IndexingMessage.Start msg) {
-			_reader = new IndexingReader(_subscriptionDispatcher, _timeProvider);
+			_reader = new IndexingReader(_subscriptionDispatcher, _timeProvider, _lucene);
 			_reader.Start();
 		}
 
