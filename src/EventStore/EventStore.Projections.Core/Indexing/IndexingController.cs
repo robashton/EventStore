@@ -68,7 +68,20 @@ namespace EventStore.Projections.Core.Indexing
         {
             Register(service, "/rob",
                      HttpMethod.Get, OnRob, Codec.NoCodecs, SupportedCodecs);
+            Register(service, "/query/{index}/{query}",
+                     HttpMethod.Get, OnQuery, Codec.NoCodecs, SupportedCodecs);
         }
+
+		private void OnQuery(HttpEntityManager http, UriTemplateMatch match)
+		{
+            if (_httpForwarder.ForwardRequest(http))
+                return;
+
+            var envelope = new SendToHttpEnvelope<IndexingMessage.Query>(
+                _networkSendQueue, http, StateFormatter, StateConfigurator, ErrorsEnvelope(http));
+
+            Publish(new IndexingMessage.Query(envelope, match.BoundVariables["index"], match.BoundVariables["query"]);
+		}
 
         private void OnRob(HttpEntityManager http, UriTemplateMatch match)
         {

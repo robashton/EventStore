@@ -63,5 +63,33 @@ namespace EventStore.Projections.Core.Messages
 
             }
         }
+
+        public sealed class Query : Message
+        {
+            private static readonly int TypeId = System.Threading.Interlocked.Increment(ref NextMsgId);
+			private readonly string _query;
+			private readonly string _index;
+
+			public string Index
+			{
+				get { return _index; }
+			}
+			
+			public string Query 
+			{
+				get { return _query; }
+			}
+
+            public override int MsgTypeId
+            {
+                get { return TypeId; }
+            }
+
+            public Query(string index, string query)
+            {
+				this._query = query;
+				this._index = index;
+            }
+        }
     }
 }
