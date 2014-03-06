@@ -38,6 +38,7 @@ extern "C"
 	// TODO: give this its own interface as it is nothing to do with JS at all!
 	JS1_API void* open_indexing_system(const char* indexing_path, LOG_CALLBACK logger);
 	JS1_API void handle_indexing_command(void* handle, const char *cmd, const char *body);
+	JS1_API void flush_indexing_system(void* handle);
 	JS1_API void close_indexing_system(void* handle);
 
 }

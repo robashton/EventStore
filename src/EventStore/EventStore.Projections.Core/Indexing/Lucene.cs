@@ -77,6 +77,11 @@ namespace EventStore.Projections.Core.Indexing
 			Js1.HandleIndexCommand(_indexingHandle.Value, ev, data);
 		}
 
+		public void Flush() 
+		{
+			Js1.FlushIndexingSystem(_indexingHandle.Value);
+		}
+
 		public void Dispose() 
 		{
 			if(_indexingHandle != null) 

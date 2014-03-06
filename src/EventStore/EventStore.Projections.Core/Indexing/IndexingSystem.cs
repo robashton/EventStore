@@ -79,7 +79,7 @@ namespace EventStore.Projections.Core.Indexing
 	{
         public const int VERSION = 3;
 
-        private List<QueuedHandler> _coreQueues;
+        private QueuedHandler _indexQueue;
 		private IndexingWorker _worker;
 
 		private QueuedHandler _webQueue;
@@ -99,8 +99,6 @@ namespace EventStore.Projections.Core.Indexing
             TFChunkDb db, QueuedHandler mainQueue, ISubscriber mainBus, TimerService timerService, ITimeProvider timeProvider,
             IHttpForwarder httpForwarder, HttpService[] httpServices, IPublisher networkSendQueue, RunProjections runProjections)
         {
-			_coreQueues = new List<QueuedHandler>();
-			
 			var webInput = new InMemoryBus("Indexing web input bus");
 			_webQueue = new QueuedHandler(webInput, "Web queue");
 			_web = new IndexingController(httpForwarder, _webQueue, networkSendQueue);
@@ -110,17 +108,17 @@ namespace EventStore.Projections.Core.Indexing
 			}
 
 			// Might not need this level of indirection if we only have one handler
-			var coreInputBus = new InMemoryBus("bus");
-			var coreQueue = new QueuedHandler(coreInputBus, "Indexing Core #" + _coreQueues.Count, groupName: "Indexing Core");
+			var indexInputBus = new InMemoryBus("bus");
+			_indexQueue = new QueuedHandler(indexInputBus, "Indexing Core", groupName: "Indexing Core");
 
 			// Only one worker to process all the things
 			// TODO: Consider disposal
 			_lucene = Lucene.Create();
-			_worker = new IndexingWorker(db, coreQueue, timeProvider, runProjections, _lucene);
-			_worker.SetupMessaging(coreInputBus);
+			_worker = new IndexingWorker(db, _indexQueue, timeProvider, runProjections, _lucene);
+			_worker.SetupMessaging(indexInputBus);
 
 			// Need these for subscriptions
-			var forwarder = new RequestResponseQueueForwarder(inputQueue: coreQueue, externalRequestQueue: mainQueue);
+			var forwarder = new RequestResponseQueueForwarder(inputQueue: _indexQueue, externalRequestQueue: mainQueue);
 			_worker.CoreOutput.Subscribe<ClientMessage.ReadEvent>(forwarder);
 			_worker.CoreOutput.Subscribe<ClientMessage.ReadStreamEventsBackward>(forwarder);
 			_worker.CoreOutput.Subscribe<ClientMessage.ReadStreamEventsForward>(forwarder);
@@ -131,29 +129,24 @@ namespace EventStore.Projections.Core.Indexing
 			_worker.CoreOutput.Subscribe(Forwarder.Create<AwakeReaderServiceMessage.UnsubscribeAwake>(mainQueue));
 			_worker.CoreOutput.Subscribe<TimerMessage.Schedule>(timerService);
 
-			_worker.CoreOutput.Subscribe(Forwarder.Create<Message>(coreQueue)); // forward all
+			_worker.CoreOutput.Subscribe(Forwarder.Create<Message>(_indexQueue)); // forward all
 
 			webInput.Subscribe(_worker);
-			coreInputBus.Subscribe(new UnwrapEnvelopeHandler());
-			_coreQueues.Add(coreQueue);
+			indexInputBus.Subscribe(new UnwrapEnvelopeHandler());
         }
 
         public void Start()
         {
-            foreach (var queue in _coreQueues) 
-			{
-                queue.Start();
-				queue.Publish(new Messages.ReaderCoreServiceMessage.StartReader());
-				queue.Publish(new IndexingMessage.Start());
-			}
+           _indexQueue.Start();
+		   _indexQueue.Publish(new Messages.ReaderCoreServiceMessage.StartReader());
+		   _indexQueue.Publish(new IndexingMessage.Start());
 			_webQueue.Start();
         }
 
         public void Stop()
         {
 			_webQueue.Stop();
-            foreach (var queue in _coreQueues)
-                queue.Stop();
+			_indexQueue.Stop();
         }
     }
 

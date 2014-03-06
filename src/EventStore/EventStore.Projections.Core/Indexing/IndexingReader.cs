@@ -89,9 +89,10 @@ namespace EventStore.Projections.Core.Indexing
             var sourceDefinition = new SourceDefinitionBuilder();
             sourceDefinition.FromStream("$indexing");
             sourceDefinition.AllEvents();
+
+			// TODO: Get this from a management stream
 			_fromPosition = CheckpointTag.FromStreamPosition(0, "$indexing", -1);
 			var readerStrategy = ReaderStrategy.Create(0, sourceDefinition.Build(), _timeProvider, stopOnEof: true, runAs: SystemAccount.Principal);
-            //TODO: make reader mode explicit
             var readerOptions = new ReaderSubscriptionOptions(1024*1024, 1024, stopOnEof: false, stopAfterNEvents: null);
             _subscriptionId =
                 _subscriptionDispatcher.PublishSubscribe(
@@ -116,13 +117,12 @@ namespace EventStore.Projections.Core.Indexing
 
 		public void Stop() 
 		{
-			_logger.Info ("Why we we stopping?");
 			this.Unsubscribe();
 		}
 
         public void Handle(EventReaderSubscriptionMessage.CommittedEventReceived message)
         {
-			_logger.Info("Zomg");
+			_logger.Info("Sticking a message in my queue");
             _lastReaderPosition = message.CheckpointTag;
             _batch.Add(new TaggedResolvedEvent(message.Data, message.EventCategory, message.CheckpointTag));
 			this.EnsureTickPending();
@@ -136,26 +136,35 @@ namespace EventStore.Projections.Core.Indexing
 
         public void Handle(EventReaderSubscriptionMessage.NotAuthorized message)
         {
-			_logger.Error("Fucks sake");
+			_logger.Error("This should never happen");
         }
         public void Handle(EventReaderSubscriptionMessage.PartitionEofReached message)
         {
-			_logger.Error("Fucks sake");
+			_logger.Error("This should never happen");
         }
         public void Handle(EventReaderSubscriptionMessage.EofReached message)
         {
-			_logger.Error("Fucks sake - EOF");
+			_logger.Error("This should never happen");
         }
 
         private void Unsubscribe()
         {
-			_logger.Info ("We unsubscribed!!");
+			_logger.Info ("Unsubscribing");
             _subscriptionDispatcher.Cancel(_subscriptionId);
         }
 
         private void Flush()
         {
 			_logger.Info("Flushing");
+			foreach(var @event in _batch) 
+			{
+				_lucene.Write(@event.ResolvedEvent.EventType, @event.ResolvedEvent.Data);
+			}
+			_lucene.Flush();
+			
+			// publish commit point to indexing management stream
+			_batch.Clear();
+			_logger.Info("Flushed");
         }
     }
 }

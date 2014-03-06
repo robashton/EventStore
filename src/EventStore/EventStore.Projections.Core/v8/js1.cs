@@ -98,6 +98,9 @@ namespace EventStore.Projections.Core.v8
         public static extern IntPtr OpenIndexingSystem(
 			[MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef=typeof(UTF8Marshaler))
 			string indexing_path, LogDelegate logger);
+		
+        [DllImport("js1", EntryPoint = "flush_indexing_system")]
+        public static extern void FlushIndexingSystem(IntPtr handle);
 
         [DllImport("js1", EntryPoint = "handle_indexing_command")]
         public static extern void HandleIndexCommand(

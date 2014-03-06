@@ -15,17 +15,18 @@ namespace js1
 		LuceneEngine(std::string index_path, LOG_CALLBACK logger);
 		~LuceneEngine();
 		void handle(const std::string& cmd, const std::string& body);
+		void flush();
+
 	private:
 		void create_index(const Json::Value& body);
 		void create_item(const Json::Value& body);
 		void update_item(const Json::Value& body);
 
-		void log(const char* msg);
+		void log(const std::string& msg);
 
 		void touch_writer(const std::string& name);
 		lucene::index::IndexWriter* get_writer(const std::string& name);
 		void populate_document(lucene::document::Document& doc, const Json::Value& fields);
-
 
 		lucene::analysis::WhitespaceAnalyzer default_writing_analyzer;
 		std::map<std::string, lucene::index::IndexWriter*> writers;

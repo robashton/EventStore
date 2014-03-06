@@ -2,6 +2,7 @@
 #include "Indexing.h"
 
 #include "CLucene.h"
+#include <iostream>
 
 using namespace lucene::document;
 using namespace lucene::index;
@@ -26,7 +27,7 @@ namespace js1
 	  msg += cmd;
 	  msg += "\r\n\r\n";
 	  msg += body;
-	  this->log(msg.c_str());
+	  this->log(msg);
 	  
 	  Json::Value parsed_body;
 	  Json::Reader reader;
@@ -63,9 +64,6 @@ namespace js1
 
 	  // Save it
 	  writer->addDocument(&document);
-
-	  // Should think about batching
-	  writer->flush();
   };
 
   void LuceneEngine::update_item(const Json::Value& body)
@@ -82,9 +80,6 @@ namespace js1
 
 	  // Save it
 	  writer->addDocument(&document);
-	  
-	  // Should think about batching
-	  writer->flush();
   };
 
   void LuceneEngine::touch_writer(const std::string& name)
@@ -129,7 +124,7 @@ namespace js1
 	  std::string value = current["value"].asString();
 	  std::string msg = name + value;
 
-	  this->log(msg.c_str());
+	  this->log(msg);
 
 	  std::wstringstream ws;
 	  ws << name.c_str();
@@ -143,11 +138,18 @@ namespace js1
 	}
   };
 
-  void LuceneEngine::log(const char* msg)
+  void LuceneEngine::flush()
   {
-	  v8::HandleScope scope(v8::Isolate::GetCurrent());
-	  v8::String::Value value(v8::String::NewFromUtf8(v8::Isolate::GetCurrent(), msg));
-	  this->logger(*value);
+       std::map<std::string, IndexWriter*>::iterator iter;
+       for (iter = this->writers.begin(); iter != this->writers.end(); iter++) 
+	   {
+		  iter->second->flush();
+       }
+  }
+
+  void LuceneEngine::log(const std::string& msg)
+  {
+	  std::cout << msg;
   }
 
 }

@@ -191,6 +191,14 @@ extern "C"
 		return new js1::LuceneEngine(index_path, logger);
 	}
 
+
+	JS1_API void flush_indexing_system(void* handle)
+	{
+		js1::LuceneEngine *engine;
+		engine = reinterpret_cast<js1::LuceneEngine *>(handle);
+		engine->flush();
+	}
+
 	JS1_API void STDCALL handle_indexing_command(void* handle, const char *cmd, const char *body) 
 	{
 		js1::LuceneEngine *engine;
