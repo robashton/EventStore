@@ -44,7 +44,8 @@ namespace EventStore.Projections.Core.Indexing
                               IHandle<EventReaderSubscriptionMessage.EofReached>,
                               IHandle<EventReaderSubscriptionMessage.PartitionEofReached>,
                               IHandle<EventReaderSubscriptionMessage.CheckpointSuggested>,
-                              IHandle<EventReaderSubscriptionMessage.NotAuthorized>
+                              IHandle<EventReaderSubscriptionMessage.NotAuthorized>,
+							  IHandle<IndexingMessage.Tick>
     {
         private readonly ILogger _logger = LogManager.GetLoggerFor<IndexingWorker>();
 
@@ -62,10 +63,13 @@ namespace EventStore.Projections.Core.Indexing
 
         private Guid _subscriptionId;
         private CheckpointTag _lastReaderPosition;
-        private readonly CheckpointTag _fromPosition;
+        private CheckpointTag _fromPosition;
 		private readonly Lucene _lucene;
+		private bool _tickPending;
+		private IPublisher _publisher;
 
         public IndexingReader(
+			IPublisher publisher,
             PublishSubscribeDispatcher
                 <Guid, ReaderSubscriptionManagement.Subscribe,
                 ReaderSubscriptionManagement.ReaderSubscriptionManagementMessage, EventReaderSubscriptionMessage>
@@ -73,9 +77,9 @@ namespace EventStore.Projections.Core.Indexing
 				Lucene lucene)
         {
             if (subscriptionDispatcher == null) throw new ArgumentNullException("subscriptionDispatcher");
+			_publisher = publisher;
             _subscriptionDispatcher = subscriptionDispatcher;
             _timeProvider = timeProvider;
-			_fromPosition = CheckpointTag.FromStreamPosition(0, "$indexing", -1);
 			_lucene = lucene;
 			_logger.Info("Creating a goddamned IndexingReader");
         }
@@ -85,6 +89,7 @@ namespace EventStore.Projections.Core.Indexing
             var sourceDefinition = new SourceDefinitionBuilder();
             sourceDefinition.FromStream("$indexing");
             sourceDefinition.AllEvents();
+			_fromPosition = CheckpointTag.FromStreamPosition(0, "$indexing", -1);
 			var readerStrategy = ReaderStrategy.Create(0, sourceDefinition.Build(), _timeProvider, stopOnEof: true, runAs: SystemAccount.Principal);
             //TODO: make reader mode explicit
             var readerOptions = new ReaderSubscriptionOptions(1024*1024, 1024, stopOnEof: false, stopAfterNEvents: null);
@@ -94,6 +99,20 @@ namespace EventStore.Projections.Core.Indexing
                         Guid.NewGuid(), _fromPosition, readerStrategy, readerOptions), this);
 						_logger.Info("Subscribing for indexing with subscription {0}", _subscriptionId);
 			        }
+
+
+		public void EnsureTickPending() 
+		{
+			if(_tickPending) return;
+			_tickPending = true;
+			_publisher.Publish(new IndexingMessage.Tick());
+		}
+
+		public void Handle(IndexingMessage.Tick msg) 
+		{
+			_tickPending = false;
+			this.Flush();
+		}
 
 		public void Stop() 
 		{
@@ -106,6 +125,7 @@ namespace EventStore.Projections.Core.Indexing
 			_logger.Info("Zomg");
             _lastReaderPosition = message.CheckpointTag;
             _batch.Add(new TaggedResolvedEvent(message.Data, message.EventCategory, message.CheckpointTag));
+			this.EnsureTickPending();
         }
 
         public void Handle(EventReaderSubscriptionMessage.CheckpointSuggested message)

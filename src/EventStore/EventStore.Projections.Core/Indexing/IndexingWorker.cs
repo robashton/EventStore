@@ -28,6 +28,7 @@
 
 using EventStore.Common.Options;
 using EventStore.Core.Bus;
+using EventStore.Common.Log;
 using EventStore.Common.Utils;
 using EventStore.Core.Helpers;
 using EventStore.Core.Messages;
@@ -45,6 +46,7 @@ namespace EventStore.Projections.Core.Indexing
 {
     public class IndexingWorker : IHandle<IndexingMessage.Start>
     {
+		private readonly ILogger _logger = LogManager.GetLoggerFor<IndexingWorker>();
         private readonly RunProjections _runProjections;
         private readonly InMemoryBus _coreOutput;
         private readonly EventReaderCoreService _eventReaderCoreService;
@@ -68,6 +70,7 @@ namespace EventStore.Projections.Core.Indexing
             _eventReaderCoreService = new EventReaderCoreService(
                 publisher, _ioDispatcher, 10, db.Config.WriterCheckpoint, runHeadingReader: runProjections >= RunProjections.System);
 			_lucene = lucene;
+			_reader = new IndexingReader(CoreOutput, _subscriptionDispatcher, _timeProvider, _lucene);
         }
 
         public InMemoryBus CoreOutput
@@ -76,7 +79,7 @@ namespace EventStore.Projections.Core.Indexing
         }
 
 		public void Handle(IndexingMessage.Start msg) {
-			_reader = new IndexingReader(_subscriptionDispatcher, _timeProvider, _lucene);
+			_logger.Info("Starting up indexing reader");
 			_reader.Start();
 		}
 
@@ -119,6 +122,8 @@ namespace EventStore.Projections.Core.Indexing
             coreInputBus.Subscribe<ReaderSubscriptionMessage.EventReaderPartitionDeleted>(_eventReaderCoreService);
             coreInputBus.Subscribe<ReaderSubscriptionMessage.EventReaderPartitionMeasured>(_eventReaderCoreService);
             coreInputBus.Subscribe<ReaderSubscriptionMessage.EventReaderNotAuthorized>(_eventReaderCoreService);
+
+			coreInputBus.Subscribe<IndexingMessage.Tick>(_reader);
 
             //NOTE: message forwarding is set up outside (for Read/Write events)
         }
