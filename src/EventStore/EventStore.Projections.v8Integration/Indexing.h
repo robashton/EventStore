@@ -13,6 +13,7 @@ namespace js1
   {
 	  // TODO: Success codes
 	  char* json;
+	  int num_results;
 	  int num_bytes;
   };
 

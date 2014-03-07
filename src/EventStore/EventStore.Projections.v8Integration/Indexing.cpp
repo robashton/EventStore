@@ -6,6 +6,8 @@
 
 using namespace lucene::document;
 using namespace lucene::index;
+using namespace lucene::search;
+using namespace lucene::queryParser;
 
 namespace js1 
 {
@@ -92,7 +94,7 @@ namespace js1
 	  {
 		IndexReader::unlock(dir);
 	  }
-	  this->writers[name] = new lucene::index::IndexWriter(dir, &default_writing_analyzer, true);
+	  this->writers[name] = new IndexWriter(dir, &default_writing_analyzer, true);
   };
 
   lucene::index::IndexWriter* LuceneEngine::get_writer(const std::string& name)
@@ -140,7 +142,22 @@ namespace js1
 
   QueryResult* LuceneEngine::create_query_result(const std::string& index, const std::string& query)
   {
+	  // wow, so pointer, many leak, very C++
+	  const char* dir = index.c_str();
+	  IndexReader* reader = IndexReader::open(dir, false, NULL);
+	  IndexSearcher* searcher = new IndexSearcher(reader);
+	  QueryParser* parser = new QueryParser(L"", &this->default_writing_analyzer);
+
+	  std::wstringstream ws;
+	  ws << query.c_str();
+	  std::wstring wquery = ws.str();
+
+	  Query* parsedQuery = parser->parse(wquery.c_str());
+
+	  Hits* docs = searcher->search(parsedQuery);
 	  QueryResult* result = new QueryResult();
+
+	  result->num_results = docs->length();
 	  result->num_bytes = 100;
 
 	  // TODO: Allocate this
