@@ -51,7 +51,7 @@ namespace EventStore.Projections.Core.Indexing
 {
     public class IndexingController : CommunicationController
     {
-        private static readonly ILogger Log = LogManager.GetLoggerFor<IndexingController>();
+        private static readonly ILogger _logger = LogManager.GetLoggerFor<IndexingController>();
 
         private static readonly ICodec[] SupportedCodecs = new ICodec[] {Codec.Json};
         private readonly IHttpForwarder _httpForwarder;
@@ -77,11 +77,65 @@ namespace EventStore.Projections.Core.Indexing
             if (_httpForwarder.ForwardRequest(http))
                 return;
 
-            var envelope = new SendToHttpEnvelope<IndexingMessage.Query>(
+            var envelope = new SendToHttpEnvelope<IndexingMessage.QueryResult>(
                 _networkSendQueue, http, StateFormatter, StateConfigurator, ErrorsEnvelope(http));
 
-            Publish(new IndexingMessage.Query(envelope, match.BoundVariables["index"], match.BoundVariables["query"]);
+			_logger.Info("Publishing");
+
+            Publish(new IndexingMessage.QueryRequest(envelope, match.BoundVariables["index"], match.BoundVariables["query"]));
 		}
+
+        private string StateFormatter(ICodec codec, IndexingMessage.QueryResult msg)
+        {
+			  _logger.Info("StateFormatter");
+//            if (state.Exception != null)
+//                return state.Exception.ToString();
+//            else
+                return msg.Data;
+        }
+
+        private ResponseConfiguration StateConfigurator(ICodec codec, IndexingMessage.QueryResult msg)
+        {
+			_logger.Info("StateConfigurator");
+			return Configure.Ok("text/html", Helper.UTF8NoBom, null, null, false);
+//            if (state.Exception != null)
+//                return Configure.InternalServerError();
+//            else
+//                return state.Position != null
+//                           ? Configure.Ok("application/json", Helper.UTF8NoBom, null, null, false,
+//                                          new KeyValuePair<string, string>(SystemHeaders.ProjectionPosition, state.Position.ToJsonString()))
+//                           : Configure.Ok("application/json", Helper.UTF8NoBom, null, null, false);
+        }
+
+        private IEnvelope ErrorsEnvelope(HttpEntityManager http)
+        {
+			_logger.Info("ErrorsEnvelope");
+            return new SendToHttpEnvelope<IndexingMessage.NotFound>(
+                _networkSendQueue, http, NotFoundFormatter, NotFoundConfigurator,
+                new SendToHttpEnvelope<IndexingMessage.OperationFailed>(
+				  _networkSendQueue, http, OperationFailedFormatter, OperationFailedConfigurator, null));
+        }
+
+        private ResponseConfiguration NotFoundConfigurator(ICodec codec, IndexingMessage.NotFound message)
+        {
+            return new ResponseConfiguration(404, "Not Found", "text/plain", Helper.UTF8NoBom);
+        }
+
+        private string NotFoundFormatter(ICodec codec, IndexingMessage.NotFound message)
+        {
+            return message.Reason;
+        }
+
+        private ResponseConfiguration OperationFailedConfigurator(
+            ICodec codec, IndexingMessage.OperationFailed message)
+        {
+            return new ResponseConfiguration(500, "Failed", "text/plain", Helper.UTF8NoBom);
+        }
+
+        private string OperationFailedFormatter(ICodec codec, IndexingMessage.OperationFailed message)
+        {
+            return message.Reason;
+        }
 
         private void OnRob(HttpEntityManager http, UriTemplateMatch match)
         {

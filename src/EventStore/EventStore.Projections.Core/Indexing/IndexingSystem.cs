@@ -75,7 +75,7 @@ namespace EventStore.Projections.Core.Indexing
         }
 	}
 
-	public sealed class Indexing
+	public sealed class Indexing : IHandle<IndexingMessage.QueryRequest>
 	{
         public const int VERSION = 3;
 
@@ -132,8 +132,16 @@ namespace EventStore.Projections.Core.Indexing
 			_worker.CoreOutput.Subscribe(Forwarder.Create<Message>(_indexQueue)); // forward all
 
 			webInput.Subscribe(_worker);
+			webInput.Subscribe<IndexingMessage.QueryRequest>(this);
+
 			indexInputBus.Subscribe(new UnwrapEnvelopeHandler());
         }
+
+		public void Handle(IndexingMessage.QueryRequest request)
+		{
+			var result = _lucene.Query(request.Index, request.Query);
+			request.Envelope.ReplyWith(new IndexingMessage.QueryResult(result));
+		}
 
         public void Start()
         {

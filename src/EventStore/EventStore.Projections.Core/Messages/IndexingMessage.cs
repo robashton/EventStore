@@ -64,11 +64,12 @@ namespace EventStore.Projections.Core.Messages
             }
         }
 
-        public sealed class Query : Message
+        public sealed class QueryRequest : Message
         {
             private static readonly int TypeId = System.Threading.Interlocked.Increment(ref NextMsgId);
 			private readonly string _query;
 			private readonly string _index;
+			private readonly IEnvelope _envelope;
 
 			public string Index
 			{
@@ -79,16 +80,85 @@ namespace EventStore.Projections.Core.Messages
 			{
 				get { return _query; }
 			}
+			
+			public IEnvelope Envelope
+			{
+				get { return _envelope; }
+			}
 
             public override int MsgTypeId
             {
                 get { return TypeId; }
             }
 
-            public Query(string index, string query)
+            public QueryRequest(IEnvelope envelope, string index, string query)
             {
+				this._envelope = envelope;
 				this._query = query;
 				this._index = index;
+            }
+        }
+
+        public sealed class QueryResult : Message
+        {
+            private static readonly int TypeId = System.Threading.Interlocked.Increment(ref NextMsgId);
+			private readonly string _data;
+
+			public string Data
+			{
+				get { return _data; }
+			}
+
+            public override int MsgTypeId
+            {
+                get { return TypeId; }
+            }
+
+            public QueryResult(string data)
+            {
+				_data = data;
+            }
+        }
+
+        public sealed class NotFound : Message
+        {
+            private static readonly int TypeId = System.Threading.Interlocked.Increment(ref NextMsgId);
+			private readonly string _reason;
+
+			public string Reason
+			{
+				get { return _reason; }
+			}
+
+            public override int MsgTypeId
+            {
+                get { return TypeId; }
+            }
+
+            public NotFound(string reason)
+            {
+				_reason = reason;
+            }
+        }
+
+        public sealed class OperationFailed : Message
+        {
+            private static readonly int TypeId = System.Threading.Interlocked.Increment(ref NextMsgId);
+			private readonly string _reason;
+
+			public string Reason
+			{
+				get { return _reason; }
+			}
+
+            public override int MsgTypeId
+            {
+                get { return TypeId; }
+            }
+
+            public OperationFailed(string reason)
+            {
+				_reason = reason;
             }
         }
     }
