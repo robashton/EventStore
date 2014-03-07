@@ -154,11 +154,18 @@ namespace js1
 
 	  Query* parsedQuery = parser->parse(wquery.c_str());
 
-	  Hits* docs = searcher->search(parsedQuery);
+	  Hits* hits = searcher->search(parsedQuery);
 	  QueryResult* result = new QueryResult();
 
-	  result->num_results = docs->length();
+	  result->num_results = hits->length();
 	  result->num_bytes = 100;
+
+	  for(int x = 0; x < hits->length() ; x++)
+	  {
+		  Document &doc = hits->doc(x);
+		  FieldsType* fields = doc.getFields();
+
+	  }
 
 	  // TODO: Allocate this
 	  result->json = NULL;
