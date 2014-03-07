@@ -139,11 +139,9 @@ namespace EventStore.Projections.Core.Indexing
 
 		public void Handle(IndexingMessage.QueryRequest request)
 		{
-			using(var query = _lucene.Query(request.Index, request.Query))
-			{
-				// TODO: Handle error codes
-				request.Envelope.ReplyWith(new IndexingMessage.QueryResult(query.Result));
-			}
+			var result = _lucene.Query(request.Index, request.Query);
+			// TODO: Handle error codes
+			request.Envelope.ReplyWith(new IndexingMessage.QueryResult(result));
 		}
 
         public void Start()

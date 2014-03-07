@@ -1,4 +1,3 @@
-
 // Copyright (c) 2012, Event Store LLP
 // All rights reserved.
 // 
@@ -32,12 +31,20 @@ using EventStore.Projections.Core.Services;
 using EventStore.Projections.Core.Services.Processing;
 using EventStore.Projections.Core.v8;
 using EventStore.Common.Log;
+using System.Runtime.InteropServices;
 using System;
 
 namespace EventStore.Projections.Core.Indexing
 {
 	public class Lucene
 	{
+		[StructLayout(LayoutKind.Sequential)]
+		public struct NativeQueryResult
+		{
+			public IntPtr json;
+			public int num_bytes;
+		}
+
         private IntPtr? _indexingHandle;
         private readonly Js1.LogDelegate _logHandler;
 		private readonly ILogger _logger;
@@ -77,19 +84,24 @@ namespace EventStore.Projections.Core.Indexing
 			Js1.HandleIndexCommand(_indexingHandle.Value, ev, data);
 		}
 
-		public LuceneQuery Query(string index, string query) 
+		public string Query(string index, string query) 
 		{
-			var queryObj = new LuceneQuery(_indexingHandle.Value, index, query);
+			IntPtr? result = null;
+			NativeQueryResult unpackedResult;
+			Byte[] unpackedJson;
+
 			try
 			{
-				queryObj.Execute();
+			  result = Js1.CreateIndexQueryResult(_indexingHandle.Value, index, query);
+			  unpackedResult = (NativeQueryResult)Marshal.PtrToStructure(result.Value, typeof(NativeQueryResult));
+			  Console.WriteLine("GOT A RESULT {0}", unpackedResult.num_bytes);
+			  return "This is not a result";
 			}
-			catch
+			finally
 			{
-				queryObj.Dispose();
-				throw;
+				if(result != null)
+				  Js1.FreeIndexQueryResult(_indexingHandle.Value, result.Value);
 			}
-			return queryObj;
 		}
 
 		public void Flush() 
