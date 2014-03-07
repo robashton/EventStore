@@ -9,14 +9,22 @@
 // TODO: This really has nothing to do with js1
 namespace js1 
 {
+  struct QueryResult
+  {
+	  // TODO: Success codes
+	  char* json;
+	  int num_bytes;
+  };
+
   class LuceneEngine 
   {
 	public:
 		LuceneEngine(std::string index_path, LOG_CALLBACK logger);
 		~LuceneEngine();
 		void handle(const std::string& cmd, const std::string& body);
+		QueryResult* create_query_result(const std::string& index, const std::string& query);
+		void free_query_result(QueryResult* result);
 		void flush();
-
 	private:
 		void create_index(const Json::Value& body);
 		void create_item(const Json::Value& body);
@@ -27,6 +35,7 @@ namespace js1
 		void touch_writer(const std::string& name);
 		lucene::index::IndexWriter* get_writer(const std::string& name);
 		void populate_document(lucene::document::Document& doc, const Json::Value& fields);
+
 
 		lucene::analysis::WhitespaceAnalyzer default_writing_analyzer;
 		std::map<std::string, lucene::index::IndexWriter*> writers;

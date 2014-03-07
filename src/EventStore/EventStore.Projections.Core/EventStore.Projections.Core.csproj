@@ -159,6 +159,7 @@
 	<Compile Include="Indexing\IndexingReader.cs" />
 	<Compile Include="Indexing\IndexingSystem.cs" />
 	<Compile Include="Indexing\IndexingWorker.cs" />
+	<Compile Include="Indexing\LuceneQuery.cs" />
     <Compile Include="Messages\AwakeReaderServiceMessage.cs" />
     <Compile Include="Messages\IndexingMessage.cs" />
     <Compile Include="Messages\CoreProjectionManagementMessage.cs" />

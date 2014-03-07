@@ -138,6 +138,22 @@ namespace js1
 	}
   };
 
+  QueryResult* LuceneEngine::create_query_result(const std::string& index, const std::string& query)
+  {
+	  QueryResult* result = new QueryResult();
+	  result->num_bytes = 100;
+
+	  // TODO: Allocate this
+	  result->json = NULL;
+	  return result;
+  };
+
+  void LuceneEngine::free_query_result(QueryResult* result)
+  {
+	  // TODO: Delete allocated memory on struct itself
+	  delete result;
+  }
+
   void LuceneEngine::flush()
   {
        std::map<std::string, IndexWriter*>::iterator iter;

@@ -1,4 +1,3 @@
-
 // Copyright (c) 2012, Event Store LLP
 // All rights reserved.
 // 
@@ -32,78 +31,57 @@ using EventStore.Projections.Core.Services;
 using EventStore.Projections.Core.Services.Processing;
 using EventStore.Projections.Core.v8;
 using EventStore.Common.Log;
+using System.Runtime.InteropServices;
 using System;
 
 namespace EventStore.Projections.Core.Indexing
 {
-	public class Lucene
+	public class LuceneQuery : IDisposable
 	{
-        private IntPtr? _indexingHandle;
-        private readonly Js1.LogDelegate _logHandler;
-		private readonly ILogger _logger;
-
-        private void NativeLogHandler(string message)
-        {
-            _logger.Info("Message from native lucene: {0}", message);
-        }
-
-		private Lucene() 
+		[StructLayout(LayoutKind.Sequential)]
+		public struct NativeQueryResult
 		{
-
+			public IntPtr json;
+			public int num_bytes;
 		}
 
-		private void Initialize()
+		IntPtr? _data;
+		private NativeQueryResult _result;
+		private readonly IntPtr _handle;
+		private readonly string _index;
+		private readonly string _query; 
+
+		public string Result
 		{
-            _indexingHandle = Js1.OpenIndexingSystem("Indexes", NativeLogHandler);
+			get { return "This is not a result"; }
 		}
 
-		public static Lucene Create()
+		public LuceneQuery(IntPtr handle, string index, string query)
 		{
-			var lucene = new Lucene();
-			try
+			_handle = handle;
+			_index = index;
+			_query = query;
+		}
+
+		public void Execute()
+		{
+			_data = Js1.CreateIndexQueryResult(_handle, _index, _query);
+			_result = (NativeQueryResult)Marshal.PtrToStructure(_data.Value, typeof(NativeQueryResult));
+			Console.WriteLine("GOT A RESULT {0}", _result.num_bytes);
+		}
+
+		public void Dispose()
+		{
+			if(_data != null)
 			{
-				lucene.Initialize();
+				Js1.FreeIndexQueryResult(_handle, _data.Value);
+				_data = null;
 			}
-			catch(Exception ex) 
-			{
-				lucene.Dispose();
-				throw ex;
-			}
-			return lucene;
 		}
 
-		public void Write(string ev, string data)
+		~LuceneQuery()
 		{
-			Js1.HandleIndexCommand(_indexingHandle.Value, ev, data);
-		}
-
-		public LuceneQuery Query(string index, string query) 
-		{
-			var queryObj = new LuceneQuery(_indexingHandle.Value, index, query);
-			try
-			{
-				queryObj.Execute();
-			}
-			catch
-			{
-				queryObj.Dispose();
-				throw;
-			}
-			return queryObj;
-		}
-
-		public void Flush() 
-		{
-			Js1.FlushIndexingSystem(_indexingHandle.Value);
-		}
-
-		public void Dispose() 
-		{
-			if(_indexingHandle != null) 
-			{
-				Js1.CloseIndexingSystem(_indexingHandle.Value);
-				_indexingHandle = null;
-			}
+			this.Dispose();
 		}
 	}
 }
