@@ -42,6 +42,7 @@ namespace EventStore.Projections.Core.Indexing
 		public struct NativeQueryResult
 		{
 			public IntPtr json;
+			public int num_results;
 			public int num_bytes;
 		}
 
@@ -92,10 +93,11 @@ namespace EventStore.Projections.Core.Indexing
 
 			try
 			{
-			  result = Js1.CreateIndexQueryResult(_indexingHandle.Value, index, query);
-			  unpackedResult = (NativeQueryResult)Marshal.PtrToStructure(result.Value, typeof(NativeQueryResult));
-			  Console.WriteLine("GOT A RESULT {0}", unpackedResult.num_bytes);
-			  return "This is not a result";
+				result = Js1.CreateIndexQueryResult(_indexingHandle.Value, index, query);
+				unpackedResult = (NativeQueryResult)Marshal.PtrToStructure(result.Value, typeof(NativeQueryResult));
+
+				Console.WriteLine("GOT A RESULT {0}", unpackedResult.num_results);
+				return "This is not a result";
 			}
 			finally
 			{

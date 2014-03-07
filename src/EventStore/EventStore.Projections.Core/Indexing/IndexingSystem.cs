@@ -128,10 +128,10 @@ namespace EventStore.Projections.Core.Indexing
 			_worker.CoreOutput.Subscribe(Forwarder.Create<AwakeReaderServiceMessage.SubscribeAwake>(mainQueue));
 			_worker.CoreOutput.Subscribe(Forwarder.Create<AwakeReaderServiceMessage.UnsubscribeAwake>(mainQueue));
 			_worker.CoreOutput.Subscribe<TimerMessage.Schedule>(timerService);
+			mainBus.Subscribe(Forwarder.Create<SystemMessage.StateChangeMessage>(_indexQueue));
 
 			_worker.CoreOutput.Subscribe(Forwarder.Create<Message>(_indexQueue)); // forward all
 
-			webInput.Subscribe(_worker);
 			webInput.Subscribe<IndexingMessage.QueryRequest>(this);
 
 			indexInputBus.Subscribe(new UnwrapEnvelopeHandler());
@@ -147,8 +147,6 @@ namespace EventStore.Projections.Core.Indexing
         public void Start()
         {
            _indexQueue.Start();
-		   _indexQueue.Publish(new Messages.ReaderCoreServiceMessage.StartReader());
-		   _indexQueue.Publish(new IndexingMessage.Start());
 			_webQueue.Start();
         }
 

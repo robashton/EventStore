@@ -44,7 +44,8 @@ using EventStore.Projections.Core.Services.Processing;
 
 namespace EventStore.Projections.Core.Indexing
 {
-    public class IndexingWorker : IHandle<IndexingMessage.Start>
+    public class IndexingWorker : IHandle<SystemMessage.StateChangeMessage>,
+								  IHandle<IndexingMessage.Start>
     {
 		private readonly ILogger _logger = LogManager.GetLoggerFor<IndexingWorker>();
         private readonly RunProjections _runProjections;
@@ -55,6 +56,7 @@ namespace EventStore.Projections.Core.Indexing
 		private IndexingReader _reader;
 		private readonly ITimeProvider _timeProvider;
 		private readonly Lucene _lucene;
+		private bool _started;
 
         public IndexingWorker(TFChunkDb db, QueuedHandler inputQueue, ITimeProvider timeProvider, RunProjections runProjections, Lucene lucene)
         {
@@ -78,14 +80,27 @@ namespace EventStore.Projections.Core.Indexing
             get { return _coreOutput; }
         }
 
-		public void Handle(IndexingMessage.Start msg) {
-			_logger.Info("Starting up indexing reader");
+		public void Handle(SystemMessage.StateChangeMessage msg) 
+		{
+			if(!_started)
+			{
+				_started = true;
+				_logger.Info("Sending start messages");
+				CoreOutput.Publish(new Messages.ReaderCoreServiceMessage.StartReader());
+				CoreOutput.Publish(new IndexingMessage.Start());
+			}
+		}
+
+		public void Handle(IndexingMessage.Start msg)
+		{
+			_logger.Info("Starting indexing system for realsies");
 			_reader.Start();
 		}
 
         public void SetupMessaging(IBus coreInputBus)
         {
-			coreInputBus.Subscribe(this);
+			coreInputBus.Subscribe<SystemMessage.StateChangeMessage>(this);
+			coreInputBus.Subscribe<IndexingMessage.Start>(this);
 
 			// NOTE: I don't actually know if all of these are needed, but they seemed like likely suspects
             coreInputBus.Subscribe(_subscriptionDispatcher.CreateSubscriber<EventReaderSubscriptionMessage.CheckpointSuggested>());

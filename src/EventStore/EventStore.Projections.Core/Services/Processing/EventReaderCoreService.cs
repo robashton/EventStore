@@ -126,7 +126,10 @@ namespace EventStore.Projections.Core.Services.Processing
         public void Handle(ReaderSubscriptionManagement.Subscribe message)
         {
             if (_stopped)
+			{
+				_logger.Info("Refusing subscription cos we're not started {0} {1}", message.SubscriptionId, message.FromPosition);
                 return;
+			}
 
             var fromCheckpointTag = message.FromPosition;
             var subscriptionId = message.SubscriptionId;
