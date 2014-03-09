@@ -2,6 +2,7 @@
 #include "Indexing.h"
 
 #include "CLucene.h"
+#include "CLucene/config/repl_wchar.h"
 #include <iostream>
 
 using namespace lucene::document;
@@ -56,13 +57,19 @@ namespace js1
 
   void LuceneEngine::create_item(const Json::Value& body)
   {
-	  std::string id = body["itemId"].asString();
-	  std::string indexName = body["indexName"].asString();
+	  std::string id = body["item_id"].asString();
+	  std::string indexName = body["index_name"].asString();
+	  std::string indexData = body["index_data"].asString();
+
 	  IndexWriter* writer = this->get_writer(indexName);
 	  Document document;
 
 	  // Populate it
 	  this->populate_document(document, body["fields"]);
+
+	  // Shove in our other crap
+	  document.add(*(new Field(L"__id",  utf8_to_wstr(id).c_str() , Field::Store::STORE_YES | Field::Index::INDEX_UNTOKENIZED)));
+	  document.add(*(new Field(L"__data",  utf8_to_wstr(indexData).c_str() , Field::STORE_YES | Field::Index::INDEX_NO)));
 
 	  // Save it
 	  writer->addDocument(&document);
@@ -70,8 +77,8 @@ namespace js1
 
   void LuceneEngine::update_item(const Json::Value& body)
   {
-	  std::string id = body["itemId"].asString();
-	  std::string indexName = body["indexName"].asString();
+	  std::string id = body["item_id"].asString();
+	  std::string indexName = body["index_name"].asString();
 	  IndexWriter* writer = this->get_writer(indexName);
 
 	  // TODO: Get the original document out by id
@@ -128,17 +135,24 @@ namespace js1
 
 	  this->log(msg);
 
-	  std::wstringstream ws;
-	  ws << name.c_str();
-	  std::wstring wname = ws.str();
-	  ws.str(L"");
-	  ws << value.c_str();
-	  std::wstring wvalue = ws.str();
+	  std::wstring wname = utf8_to_wstr(name);
+	  std::wstring wvalue = utf8_to_wstr(value);
 
 	  Field* field = new Field(wname.c_str(), wvalue.c_str(), store | index | termVector);
 	  doc.add(*field);
 	}
   };
+
+  std::wstring LuceneEngine::utf8_to_wstr(const std::string& in)
+  {
+	  // This apparently works even for non ansi characters
+	  // but I've not tested it. Consider this a placeholder until I 
+	  // think of a better string strategy
+	  std::wstringstream ws;
+	  ws << in.c_str();
+	  return ws.str();
+  }
+
 
   QueryResult* LuceneEngine::create_query_result(const std::string& index, const std::string& query)
   {
@@ -148,33 +162,49 @@ namespace js1
 	  IndexSearcher* searcher = new IndexSearcher(reader);
 	  QueryParser* parser = new QueryParser(L"", &this->default_writing_analyzer);
 
-	  std::wstringstream ws;
-	  ws << query.c_str();
-	  std::wstring wquery = ws.str();
+	  std::wstring wquery = utf8_to_wstr(query);
 
 	  Query* parsedQuery = parser->parse(wquery.c_str());
-
 	  Hits* hits = searcher->search(parsedQuery);
 	  QueryResult* result = new QueryResult();
 
 	  result->num_results = hits->length();
-	  result->num_bytes = 100;
+
+	  Json::Value results(Json::arrayValue);
 
 	  for(int x = 0; x < hits->length() ; x++)
 	  {
 		  Document &doc = hits->doc(x);
-		  FieldsType* fields = doc.getFields();
+		  Field* stored_data = doc.getField(L"__data");
+		  Field* id = doc.getField(L"__id");
 
+		  std::wstring data_val_wide = stored_data->stringValue();
+		  std::wstring id_val_wide = id->stringValue();
+		  std::string data_val = lucene_wcstoutf8string(data_val_wide.c_str(), data_val_wide.length());
+		  std::string id_val = lucene_wcstoutf8string(id_val_wide.c_str(), id_val_wide.length());
+
+		  Json::Value jsonDocument;
+		  jsonDocument["id"] = Json::Value(id_val);
+		  jsonDocument["data"] = Json::Value(data_val);
+		  results.append(jsonDocument);
 	  }
 
-	  // TODO: Allocate this
-	  result->json = NULL;
+	  std::string resultJson = results.toStyledString();
+	  
+	  result->json = new unsigned char[resultJson.length()];
+	  result->num_bytes = resultJson.length();
+	  std::copy(resultJson.begin(), resultJson.end(), result->json);
+	  
+	  //delete searcher;
+	  //delete reader;
+
 	  return result;
   };
 
   void LuceneEngine::free_query_result(QueryResult* result)
   {
-	  // TODO: Delete allocated memory on struct itself
+	  if(result->json != NULL)
+		delete[] result->json;
 	  delete result;
   }
 

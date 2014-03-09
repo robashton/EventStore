@@ -33,6 +33,7 @@ using EventStore.Projections.Core.v8;
 using EventStore.Common.Log;
 using System.Runtime.InteropServices;
 using System;
+using System.Text;
 
 namespace EventStore.Projections.Core.Indexing
 {
@@ -95,9 +96,9 @@ namespace EventStore.Projections.Core.Indexing
 			{
 				result = Js1.CreateIndexQueryResult(_indexingHandle.Value, index, query);
 				unpackedResult = (NativeQueryResult)Marshal.PtrToStructure(result.Value, typeof(NativeQueryResult));
-
-				Console.WriteLine("GOT A RESULT {0}", unpackedResult.num_results);
-				return "This is not a result";
+				unpackedJson = new Byte[unpackedResult.num_bytes];
+				Marshal.Copy(unpackedResult.json, unpackedJson, 0, unpackedResult.num_bytes);
+				return Encoding.UTF8.GetString(unpackedJson);
 			}
 			finally
 			{

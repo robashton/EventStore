@@ -12,7 +12,7 @@ namespace js1
   struct QueryResult
   {
 	  // TODO: Success codes
-	  char* json;
+	  unsigned char* json;
 	  int num_results;
 	  int num_bytes;
   };
@@ -36,7 +36,8 @@ namespace js1
 		void touch_writer(const std::string& name);
 		lucene::index::IndexWriter* get_writer(const std::string& name);
 		void populate_document(lucene::document::Document& doc, const Json::Value& fields);
-
+		std::wstring utf8_to_wstr(const std::string& in);
+		std::string wstr_to_utf8(const std::wstring& in);
 
 		lucene::analysis::WhitespaceAnalyzer default_writing_analyzer;
 		std::map<std::string, lucene::index::IndexWriter*> writers;

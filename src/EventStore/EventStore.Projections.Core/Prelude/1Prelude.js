@@ -244,7 +244,7 @@ function scope($on, $notify) {
     }
 
     function createIndexItem(indexName, itemId, fields) {
-        var eventBody = { indexName: indexName, itemId: itemId, fields: fields};
+        var eventBody = { index_name: indexName, item_id: itemId, index_data: JSON.stringify(fields), fields: fields};
 		var message = { 
 		  streamId: '$indexing', 
 		  eventName: 'item-created', 
@@ -254,7 +254,7 @@ function scope($on, $notify) {
     }
 
     function updateIndexItem(indexName, itemId, fields) {
-        var eventBody = { indexName: indexName, itemId: itemId, fields: fields};
+        var eventBody = { index_name: indexName, item_id: itemId, index_data: JSON.stringify(fields), fields: fields};
 		var message = { 
 		  streamId: '$indexing', 
 		  eventName: 'item-updated', 
