@@ -168,6 +168,10 @@ namespace EventStore.Core
 
             var chaser = new TFChunkChaser(db, db.Config.WriterCheckpoint, db.Config.ChaserCheckpoint);
             var storageChaser = new StorageChaser(_mainQueue, db.Config.WriterCheckpoint, chaser, readIndex.IndexCommitter, epochManager);
+#if DEBUG
+            QueueStatsCollector.InitializeCheckpoints(
+                _nodeInfo.DebugIndex, db.Config.WriterCheckpoint, db.Config.ChaserCheckpoint);
+#endif
             _mainBus.Subscribe<SystemMessage.SystemInit>(storageChaser);
             _mainBus.Subscribe<SystemMessage.SystemStart>(storageChaser);
             _mainBus.Subscribe<SystemMessage.BecomeShuttingDown>(storageChaser);
@@ -348,7 +352,7 @@ namespace EventStore.Core
             _mainBus.Subscribe(subscrQueue.WidenFrom<ClientMessage.UnsubscribeFromStream, Message>());
             _mainBus.Subscribe(subscrQueue.WidenFrom<SubscriptionMessage.PollStream, Message>());
             _mainBus.Subscribe(subscrQueue.WidenFrom<SubscriptionMessage.CheckPollTimeout, Message>());
-            _mainBus.Subscribe(subscrQueue.WidenFrom<StorageMessage.EventCommited, Message>());
+            _mainBus.Subscribe(subscrQueue.WidenFrom<StorageMessage.EventCommitted, Message>());
 
             var subscription = new SubscriptionsService(_mainQueue, subscrQueue, readIndex);
             subscrBus.Subscribe<SystemMessage.SystemStart>(subscription);
@@ -358,7 +362,7 @@ namespace EventStore.Core
             subscrBus.Subscribe<ClientMessage.UnsubscribeFromStream>(subscription);
             subscrBus.Subscribe<SubscriptionMessage.PollStream>(subscription);
             subscrBus.Subscribe<SubscriptionMessage.CheckPollTimeout>(subscription);
-            subscrBus.Subscribe<StorageMessage.EventCommited>(subscription);
+            subscrBus.Subscribe<StorageMessage.EventCommitted>(subscription);
 
             // TIMER
             _timeProvider = new RealTimeProvider();

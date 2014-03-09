@@ -29,7 +29,9 @@
 using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
 using System.Text;
+using System.Threading;
 using EventStore.ClientAPI;
 using EventStore.ClientAPI.Common.Log;
 using EventStore.ClientAPI.SystemData;
@@ -42,16 +44,39 @@ using EventStore.Projections.Core.Services.Processing;
 using NUnit.Framework;
 using ResolvedEvent = EventStore.ClientAPI.ResolvedEvent;
 
-namespace EventStore.Projections.Core.Tests.ClientAPI
+namespace EventStore.Projections.Core.Tests.ClientAPI.Cluster
 {
     [Category("ClientAPI")]
     public class specification_with_standard_projections_runnning : SpecificationWithDirectoryPerTestFixture
     {
-        protected MiniNode _node;
+        protected MiniClusterNode[] _nodes = new MiniClusterNode[3];
+        protected Endpoints[] _nodeEndpoints = new Endpoints[3];
         protected IEventStoreConnection _conn;
         protected ProjectionsSubsystem _projections;
         protected UserCredentials _admin = new UserCredentials("admin", "changeit");
         protected ProjectionsManager _manager;
+
+        protected class Endpoints
+        {
+            public readonly IPEndPoint InternalTcp;
+            public readonly IPEndPoint InternalTcpSec;
+            public readonly IPEndPoint InternalHttp;
+            public readonly IPEndPoint ExternalTcp;
+            public readonly IPEndPoint ExternalTcpSec;
+            public readonly IPEndPoint ExternalHttp;
+
+            public Endpoints(
+                int internalTcp, int internalTcpSec, int internalHttp, int externalTcp,
+                int externalTcpSec, int externalHttp)
+            {
+                InternalTcp = new IPEndPoint(IPAddress.Loopback, internalTcp);
+                InternalTcpSec = new IPEndPoint(IPAddress.Loopback, internalTcpSec);
+                InternalHttp = new IPEndPoint(IPAddress.Loopback, internalHttp);
+                ExternalTcp = new IPEndPoint(IPAddress.Loopback, externalTcp);
+                ExternalTcpSec = new IPEndPoint(IPAddress.Loopback, externalTcpSec);
+                ExternalHttp = new IPEndPoint(IPAddress.Loopback, externalHttp);
+            }
+        }
 
         [TestFixtureSetUp]
         public override void TestFixtureSetUp()
@@ -62,12 +87,41 @@ namespace EventStore.Projections.Core.Tests.ClientAPI
 #else 
             throw new NotSupportedException("These tests require DEBUG conditional");
 #endif
-            CreateNode();
 
-            _conn = EventStoreConnection.Create(_node.TcpEndPoint);
+            _nodeEndpoints[0] = new Endpoints(
+                PortsHelper.GetAvailablePort(IPAddress.Loopback), PortsHelper.GetAvailablePort(IPAddress.Loopback),
+                PortsHelper.GetAvailablePort(IPAddress.Loopback), PortsHelper.GetAvailablePort(IPAddress.Loopback),
+                PortsHelper.GetAvailablePort(IPAddress.Loopback), PortsHelper.GetAvailablePort(IPAddress.Loopback));
+            _nodeEndpoints[1] = new Endpoints(
+                PortsHelper.GetAvailablePort(IPAddress.Loopback), PortsHelper.GetAvailablePort(IPAddress.Loopback),
+                PortsHelper.GetAvailablePort(IPAddress.Loopback), PortsHelper.GetAvailablePort(IPAddress.Loopback),
+                PortsHelper.GetAvailablePort(IPAddress.Loopback), PortsHelper.GetAvailablePort(IPAddress.Loopback));
+            _nodeEndpoints[2] = new Endpoints(
+                PortsHelper.GetAvailablePort(IPAddress.Loopback), PortsHelper.GetAvailablePort(IPAddress.Loopback),
+                PortsHelper.GetAvailablePort(IPAddress.Loopback), PortsHelper.GetAvailablePort(IPAddress.Loopback),
+                PortsHelper.GetAvailablePort(IPAddress.Loopback), PortsHelper.GetAvailablePort(IPAddress.Loopback));
+
+            PortsHelper.GetAvailablePort(IPAddress.Loopback);
+
+            _nodes[0] = CreateNode(0, 
+                _nodeEndpoints[0], new IPEndPoint[] {_nodeEndpoints[1].InternalHttp, _nodeEndpoints[2].InternalHttp});
+            _nodes[1] = CreateNode(1, 
+                _nodeEndpoints[1], new IPEndPoint[] { _nodeEndpoints[0].InternalHttp, _nodeEndpoints[2].InternalHttp });
+            
+            _nodes[2] = CreateNode(2, 
+                _nodeEndpoints[2], new IPEndPoint[] { _nodeEndpoints[0].InternalHttp, _nodeEndpoints[1].InternalHttp });
+            
+
+            _nodes[0].Start();
+            _nodes[1].Start();
+            _nodes[2].Start();
+
+            WaitHandle.WaitAll(new[] { _nodes[0].StartedEvent, _nodes[1].StartedEvent, _nodes[2].StartedEvent });
+            QueueStatsCollector.WaitIdle();
+            _conn = EventStoreConnection.Create(_nodes[0].ExternalTcpEndPoint);
             _conn.Connect();
 
-            _manager = new ProjectionsManager(new ConsoleLogger(), _node.HttpEndPoint);
+            _manager = new ProjectionsManager(new ConsoleLogger(), _nodes[0].ExternalHttpEndPoint);
             if (GivenStandardProjectionsRunning())
                 EnableStandardProjections();
             QueueStatsCollector.WaitIdle();
@@ -75,12 +129,15 @@ namespace EventStore.Projections.Core.Tests.ClientAPI
             When();
         }
 
-        private void CreateNode()
+        private MiniClusterNode CreateNode(int index, Endpoints endpoints, IPEndPoint[] gossipSeeds)
         {
             _projections = new ProjectionsSubsystem(1, runProjections: RunProjections.All);
-            _node = new MiniNode(
-                PathName, inMemDb: true, skipInitializeStandardUsersCheck: false, subsystems: new ISubsystem[] {_projections});
-            _node.Start();
+            var node = new MiniClusterNode(
+                PathName, index, endpoints.InternalTcp, endpoints.InternalTcpSec, endpoints.InternalHttp, endpoints.ExternalTcp,
+                endpoints.ExternalTcpSec, endpoints.ExternalHttp, skipInitializeStandardUsersCheck: false,
+                subsystems: new ISubsystem[] {_projections}, gossipSeeds: gossipSeeds);
+            WaitIdle();
+            return node;
         }
 
         [TearDown]
@@ -126,7 +183,9 @@ namespace EventStore.Projections.Core.Tests.ClientAPI
         public override void TestFixtureTearDown()
         {
             _conn.Close();
-            _node.Shutdown();
+            _nodes[0].Shutdown();
+            _nodes[1].Shutdown();
+            _nodes[2].Shutdown();
             base.TestFixtureTearDown();
 #if DEBUG
             QueueStatsCollector.InitializeIdleDetection(false);
@@ -143,7 +202,7 @@ namespace EventStore.Projections.Core.Tests.ClientAPI
 
         protected void PostEvent(string stream, string eventType, string data)
         {
-            _conn.AppendToStream(stream, ExpectedVersion.Any, new[] {event_by_type_index.with_existing_events.CreateEvent(eventType, data)});
+            _conn.AppendToStream(stream, ExpectedVersion.Any, new[] {CreateEvent(eventType, data)});
         }
 
         protected void HardDeleteStream(string stream)
@@ -259,6 +318,16 @@ namespace EventStore.Projections.Core.Tests.ClientAPI
         {
             _manager.CreateContinuous("test-projection", query, _admin);
             WaitIdle();
+        }
+    }
+
+    [TestFixture]
+    public class TestTest : specification_with_standard_projections_runnning
+    {
+        [Test]
+        public void Test()
+        {
+            Assert.Inconclusive();
         }
     }
 }

@@ -248,22 +248,34 @@ namespace EventStore.Core.Messages
             }
         }
 
-        public class EventCommited: Message
+        public class EventCommitted: Message
         {
             private static readonly int TypeId = System.Threading.Interlocked.Increment(ref NextMsgId);
             public override int MsgTypeId { get { return TypeId; } }
 
             public readonly long CommitPosition;
             public readonly EventRecord Event;
+            public readonly bool TfEof;
 
-            public EventCommited(long commitPosition, EventRecord @event)
+            public EventCommitted(long commitPosition, EventRecord @event, bool isTfEof)
             {
                 CommitPosition = commitPosition;
                 Event = @event;
+                TfEof = isTfEof;
             }
         }
 
-        public class AlreadyCommitted: Message
+        public class TfEofAtNonCommitRecord : Message
+        {
+            private static readonly int TypeId = System.Threading.Interlocked.Increment(ref NextMsgId);
+            public override int MsgTypeId { get { return TypeId; } }
+
+            public TfEofAtNonCommitRecord()
+            {
+            }
+        }
+
+        public class AlreadyCommitted : Message
         {
             private static readonly int TypeId = System.Threading.Interlocked.Increment(ref NextMsgId);
             public override int MsgTypeId { get { return TypeId; } }
@@ -413,5 +425,6 @@ namespace EventStore.Core.Messages
                 AccessResult = accessResult;
             }
         }
+
     }
 }

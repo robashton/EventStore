@@ -26,6 +26,7 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // 
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using EventStore.Common.Log;
@@ -103,6 +104,10 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
             Register(http, "/streams/{stream}", HttpMethod.Post, PostEvents, AtomCodecs, AtomCodecs);
             Register(http, "/streams/{stream}", HttpMethod.Delete, DeleteStream, Codec.NoCodecs, AtomCodecs);
 
+            Register(http, "/streams/{stream}/", HttpMethod.Post, PermRedirect, AtomCodecs, AtomCodecs);
+            Register(http, "/streams/{stream}/", HttpMethod.Delete, PermRedirect, Codec.NoCodecs, AtomCodecs);
+            Register(http, "/streams/{stream}/", HttpMethod.Get, PermRedirect, Codec.NoCodecs, AtomCodecs);
+
             Register(http, "/streams/{stream}?embed={embed}", HttpMethod.Get, GetStreamEventsBackward, Codec.NoCodecs, AtomWithHtmlCodecs);
 
             Register(http, "/streams/{stream}/{event}?embed={embed}", HttpMethod.Get, GetStreamEvent, Codec.NoCodecs, AtomWithHtmlCodecs);
@@ -112,6 +117,7 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
 
             // METASTREAMS
             Register(http, "/streams/{stream}/metadata", HttpMethod.Post, PostMetastreamEvent, AtomCodecs, AtomCodecs);
+            Register(http, "/streams/{stream}/metadata/", HttpMethod.Post, PermRedirect, AtomCodecs, AtomCodecs);
 
             Register(http, "/streams/{stream}/metadata?embed={embed}", HttpMethod.Get, GetMetastreamEvent, Codec.NoCodecs, AtomWithHtmlCodecs);
             Register(http, "/streams/{stream}/metadata/{event}?embed={embed}", HttpMethod.Get, GetMetastreamEvent, Codec.NoCodecs, AtomWithHtmlCodecs);
@@ -121,6 +127,8 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
             RegisterCustom(http, "/streams/{stream}/metadata/{event}/forward/{count}?embed={embed}", HttpMethod.Get, GetMetastreamEventsForward, Codec.NoCodecs, AtomWithHtmlCodecs);
 
             // $ALL
+            Register(http, "/streams/$all/", HttpMethod.Get, PermRedirect, Codec.NoCodecs, AtomWithHtmlCodecs);
+            Register(http, "/streams/%24all/", HttpMethod.Get, PermRedirect, Codec.NoCodecs, AtomWithHtmlCodecs);
             Register(http, "/streams/$all?embed={embed}", HttpMethod.Get, GetAllEventsBackward, Codec.NoCodecs, AtomWithHtmlCodecs);
             Register(http, "/streams/$all/{position}/{count}?embed={embed}", HttpMethod.Get, GetAllEventsBackward, Codec.NoCodecs, AtomWithHtmlCodecs);
             Register(http, "/streams/$all/{position}/backward/{count}?embed={embed}", HttpMethod.Get, GetAllEventsBackward, Codec.NoCodecs, AtomWithHtmlCodecs);
@@ -129,6 +137,15 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
             Register(http, "/streams/%24all/{position}/{count}?embed={embed}", HttpMethod.Get, GetAllEventsBackward, Codec.NoCodecs, AtomWithHtmlCodecs);
             Register(http, "/streams/%24all/{position}/backward/{count}?embed={embed}", HttpMethod.Get, GetAllEventsBackward, Codec.NoCodecs, AtomWithHtmlCodecs);
             RegisterCustom(http, "/streams/%24all/{position}/forward/{count}?embed={embed}", HttpMethod.Get, GetAllEventsForward, Codec.NoCodecs, AtomWithHtmlCodecs);
+        }
+
+        private void PermRedirect(HttpEntityManager httpEntity, UriTemplateMatch uriTemplateMatch)
+        {
+            var original = uriTemplateMatch.RequestUri.ToString();
+            var header = new []
+                             {new KeyValuePair<string, string>("Location", original.Substring(0, original.Length - 1)),
+                             new KeyValuePair<string, string>("Cache-Control", "max-age=31536000, public"), };
+            httpEntity.ReplyTextContent("Moved Permanently", HttpStatusCode.MovedPermanently, "", "", header, e => { });
         }
 
         // STREAMS
@@ -581,8 +598,16 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
         {
             manager.ReadTextRequestAsync(
                 (man, body) =>
-                {
-                    var events = AutoEventConverter.SmartParse(body, manager.RequestCodec);
+                    {
+                    var events = new Event[0];
+                    try
+                    {
+                        events = AutoEventConverter.SmartParse(body, manager.RequestCodec);
+                    }
+                    catch(Exception ex)
+                    {
+                        SendBadRequest(manager, ex.Message);
+                    }
                     if (events.IsEmpty())
                     {
                         SendBadRequest(manager, "Write request body invalid.");

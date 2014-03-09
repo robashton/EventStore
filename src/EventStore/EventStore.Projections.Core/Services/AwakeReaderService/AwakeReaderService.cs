@@ -37,7 +37,8 @@ namespace EventStore.Projections.Core.Services.AwakeReaderService
 {
     public class AwakeReaderService : IHandle<AwakeReaderServiceMessage.SubscribeAwake>,
         IHandle<AwakeReaderServiceMessage.UnsubscribeAwake>,
-        IHandle<StorageMessage.EventCommited>
+        IHandle<StorageMessage.EventCommitted>,
+        IHandle<StorageMessage.TfEofAtNonCommitRecord>
 
     {
         private readonly Dictionary<string, HashSet<AwakeReaderServiceMessage.SubscribeAwake>> _subscribers =
@@ -47,6 +48,37 @@ namespace EventStore.Projections.Core.Services.AwakeReaderService
             new Dictionary<Guid, AwakeReaderServiceMessage.SubscribeAwake>();
 
         private TFPos _lastPosition;
+
+        private readonly List<AwakeReaderServiceMessage.SubscribeAwake> _batchedReplies =
+            new List<AwakeReaderServiceMessage.SubscribeAwake>();
+
+        private int _processedEvents;
+        private int _processedEventsAwakeThreshold = 1000;
+
+        private void BeginReplyBatch()
+        {
+            if (_batchedReplies.Count > 0)
+                throw new Exception();
+            _processedEvents = 0;
+        }
+
+        private void EndReplyBatch()
+        {
+            foreach (var subscriber in _batchedReplies)
+            {
+                subscriber.Envelope.ReplyWith(subscriber.ReplyWithMessage);
+            }
+            _batchedReplies.Clear();
+        }
+
+        private void CheckProcessedEventThreshold()
+        {
+            if (_processedEvents > _processedEventsAwakeThreshold)
+            {
+                EndReplyBatch();
+                BeginReplyBatch();
+            }
+        }
 
         public void Handle(AwakeReaderServiceMessage.SubscribeAwake message)
         {
@@ -66,14 +98,21 @@ namespace EventStore.Projections.Core.Services.AwakeReaderService
             list.Add(message);
         }
 
-        public void Handle(StorageMessage.EventCommited message)
+        public void Handle(StorageMessage.EventCommitted message)
         {
+            _processedEvents++;
             _lastPosition = new TFPos(message.CommitPosition, message.Event.LogPosition);
             NotifyEventInStream("$all", message);
             NotifyEventInStream(message.Event.EventStreamId, message);
+            if (message.TfEof)
+            {
+                EndReplyBatch();
+                BeginReplyBatch();
+            }
+            CheckProcessedEventThreshold();
         }
 
-        private void NotifyEventInStream(string streamId, StorageMessage.EventCommited message)
+        private void NotifyEventInStream(string streamId, StorageMessage.EventCommitted message)
         {
             HashSet<AwakeReaderServiceMessage.SubscribeAwake> list;
             List<AwakeReaderServiceMessage.SubscribeAwake> toRemove = null;
@@ -83,7 +122,7 @@ namespace EventStore.Projections.Core.Services.AwakeReaderService
                 {
                     if (subscriber.From < new TFPos(message.CommitPosition, message.Event.LogPosition))
                     {
-                        subscriber.Envelope.ReplyWith(subscriber.ReplyWithMessage);
+                        _batchedReplies.Add(subscriber);
                         _map.Remove(subscriber.CorrelationId);
                         if (toRemove == null)
                             toRemove = new List<AwakeReaderServiceMessage.SubscribeAwake>();
@@ -111,6 +150,12 @@ namespace EventStore.Projections.Core.Services.AwakeReaderService
                 var list = _subscribers[subscriber.StreamId ?? "$all"];
                 list.Remove(subscriber);
             }
+        }
+
+        public void Handle(StorageMessage.TfEofAtNonCommitRecord message)
+        {
+            EndReplyBatch();
+            BeginReplyBatch();
         }
     }
 }

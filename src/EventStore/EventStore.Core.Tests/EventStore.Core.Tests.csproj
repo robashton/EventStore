@@ -53,7 +53,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.CSharp" />
-    <Reference Include="Newtonsoft.Json, Version=4.5.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+    <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\libs\Newtonsoft.Json.dll</HintPath>
     </Reference>
@@ -162,6 +162,7 @@
     <Compile Include="Helpers\ClientApiLoggerBridge.cs" />
     <Compile Include="Helpers\LengthPrefixSuffixFramer.cs" />
     <Compile Include="Helpers\ManualQueue.cs" />
+    <Compile Include="Helpers\MiniClusterNode.cs" />
     <Compile Include="Helpers\MiniNode.cs" />
     <Compile Include="Helpers\ReflectionDynamic.cs" />
     <Compile Include="Helpers\PortsHelper.cs" />
@@ -435,6 +436,7 @@
     <Compile Include="TransactionLog\when_destroying_a_tfchunk_that_is_locked.cs" />
     <Compile Include="TransactionLog\when_marking_for_deletion_a_tfchunk_that_has_been_locked_and_unlocked.cs" />
     <Compile Include="TransactionLog\Truncation\when_truncating_database.cs" />
+    <Compile Include="TransactionLog\when_sequentially_reading_db_with_one_chunk_ending_with_prepare.cs" />
     <Compile Include="TransactionLog\when_unlocking_a_tfchunk_that_has_been_marked_for_deletion.cs" />
     <Compile Include="TransactionLog\commit_log_record_should.cs" />
     <Compile Include="TransactionLog\Validation\when_validating_tfchunk_db_with_multi_chunks.cs" />

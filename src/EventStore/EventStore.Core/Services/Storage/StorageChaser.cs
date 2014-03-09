@@ -72,6 +72,7 @@ namespace EventStore.Core.Services.Storage
         private long _lastFlush;
 
         private readonly List<PrepareLogRecord> _transaction = new List<PrepareLogRecord>();
+        private bool _commitsAfterEof;
 
         public StorageChaser(IPublisher masterBus, 
                              ICheckpoint writerCheckpoint, 
@@ -191,13 +192,14 @@ namespace EventStore.Core.Services.Storage
                 case LogRecordType.Prepare:
                 {
                     var record = (PrepareLogRecord) result.LogRecord;
-                    ProcessPrepareRecord(record);
+                    ProcessPrepareRecord(record, result.Eof);
                     break;
                 }
                 case LogRecordType.Commit:
                 {
-                    var record = (CommitLogRecord) result.LogRecord;
-                    ProcessCommitRecord(record);
+                    _commitsAfterEof = !result.Eof;
+                    var record = (CommitLogRecord)result.LogRecord;
+                    ProcessCommitRecord(record, result.Eof);
                     break;
                 }
                 case LogRecordType.System:
@@ -209,12 +211,17 @@ namespace EventStore.Core.Services.Storage
                 default:
                     throw new ArgumentOutOfRangeException();
             }
+            if (result.Eof && result.LogRecord.RecordType != LogRecordType.Commit && _commitsAfterEof)
+            {
+                _commitsAfterEof = false;
+                _masterBus.Publish(new StorageMessage.TfEofAtNonCommitRecord());
+            }
         }
 
-        private void ProcessPrepareRecord(PrepareLogRecord record)
+        private void ProcessPrepareRecord(PrepareLogRecord record, bool isTfEof)
         {
             if (_transaction.Count > 0 && _transaction[0].TransactionPosition != record.TransactionPosition)
-                CommitPendingTransaction(_transaction);
+                CommitPendingTransaction(_transaction, isTfEof);
 
             if (record.Flags.HasAnyOf(PrepareFlags.IsCommitted))
             {
@@ -223,7 +230,7 @@ namespace EventStore.Core.Services.Storage
 
                 if (record.Flags.HasAnyOf(PrepareFlags.TransactionEnd))
                 {
-                    CommitPendingTransaction(_transaction);
+                    CommitPendingTransaction(_transaction, isTfEof);
 
                     int firstEventNumber;
                     int lastEventNumber;
@@ -250,12 +257,12 @@ namespace EventStore.Core.Services.Storage
             }
         }
 
-        private void ProcessCommitRecord(CommitLogRecord record)
+        private void ProcessCommitRecord(CommitLogRecord record, bool isTfEof)
         {
-            CommitPendingTransaction(_transaction);
+            CommitPendingTransaction(_transaction, isTfEof);
 
             var firstEventNumber = record.FirstEventNumber;
-            var lastEventNumber = _indexCommitter.Commit(record);
+            var lastEventNumber = _indexCommitter.Commit(record, isTfEof);
             if (lastEventNumber == EventNumber.Invalid)
                 lastEventNumber = record.FirstEventNumber - 1;
             _masterBus.Publish(new StorageMessage.CommitAck(record.CorrelationId, record.LogPosition, record.TransactionPosition, firstEventNumber, lastEventNumber));
@@ -263,7 +270,7 @@ namespace EventStore.Core.Services.Storage
 
         private void ProcessSystemRecord(SystemLogRecord record)
         {
-            CommitPendingTransaction(_transaction);
+            CommitPendingTransaction(_transaction, isTfEof: true);
 
             if (record.SystemRecordType == SystemRecordType.Epoch)
             {
@@ -276,11 +283,11 @@ namespace EventStore.Core.Services.Storage
             }
         }
 
-        private void CommitPendingTransaction(List<PrepareLogRecord> transaction)
+        private void CommitPendingTransaction(List<PrepareLogRecord> transaction, bool isTfEof)
         {
             if (transaction.Count > 0)
             {
-                _indexCommitter.Commit(_transaction);
+                _indexCommitter.Commit(_transaction, isTfEof);
                 _transaction.Clear();
             }
         }
