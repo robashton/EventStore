@@ -8,8 +8,12 @@
 using namespace lucene::document;
 using namespace lucene::index;
 using namespace lucene::search;
+using namespace lucene::store;
 using namespace lucene::queryParser;
 
+// NOTE: None of this is thread-safe
+// So the read-operations have the possibility of completely balking if indexes haven't been opened yet
+// by the streams - I guess I should be resolving this
 namespace js1 
 {
   LuceneEngine::LuceneEngine(std::string index_path, LOG_CALLBACK logger)
@@ -20,7 +24,8 @@ namespace js1
 
   LuceneEngine::~LuceneEngine() 
   {
-
+	  // TODO: Close writers
+	  // TODO: Close directories
   };
 
   void LuceneEngine::handle(const std::string& cmd, const std::string& body)
@@ -45,26 +50,16 @@ namespace js1
 
   void	LuceneEngine::create_index(const Json::Value& body) 
   {
+	  // TODO: Determine behaviour
 	  std::string name = body["name"].asString();
-	  if(this->writers[name] != NULL) {
-		  // TODO: Error?
-		  // Maybe just close and let this get cleared?
-		  return;
-	  }
-
-	  this->touch_writer(name);
+	  this->get_writer(name);
   };
 
   void	LuceneEngine::reset_index(const Json::Value& body) 
   {
+	  // TODO: Determine behaviour
 	  std::string name = body["name"].asString();
-	  if(this->writers[name] == NULL) {
-		  // TODO: Error?
-		  // Maybe just close and let this get cleared?
-		  return;
-	  }
-
-	  this->touch_writer(name);
+	  this->get_writer(name);
   };
 
   void LuceneEngine::create_item(const Json::Value& body)
@@ -104,23 +99,54 @@ namespace js1
 	  writer->addDocument(&document);
   };
 
-  void LuceneEngine::touch_writer(const std::string& name)
+  IndexWriter* LuceneEngine::get_writer(const std::string& name)
   {
-	  if(this->writers[name]) return;
-
-	  // TODO: Take this in from config
-	  const char* dir = name.c_str();
-	  if ( IndexReader::indexExists(dir) && IndexReader::isLocked(dir)) 
+	  IndexWriter* writer = this->writers[name];
+	  if(writer == NULL)
 	  {
-		IndexReader::unlock(dir);
+		  Directory* dir = this->get_directory(name);
+		  writer = this->writers[name] = new IndexWriter(dir, &default_writing_analyzer, true); // TODO: Try false
 	  }
-	  this->writers[name] = new IndexWriter(dir, &default_writing_analyzer, true);
+	  return writer;
   };
 
-  lucene::index::IndexWriter* LuceneEngine::get_writer(const std::string& name)
+  IndexReader* LuceneEngine::get_reader(const std::string& name)
   {
-	  this->touch_writer(name);
-	  return this->writers[name];
+	  IndexReader* reader = this->readers[name];
+	  if(reader == NULL)
+	  {
+		  Directory* dir = this->get_directory(name);
+
+		  // TODO: Check if dir is empty first
+		  reader = this->readers[name] = IndexReader::open(dir, &default_writing_analyzer);
+	  }
+	  return reader;
+  };
+
+  Directory* LuceneEngine::get_directory(const std::string& name)
+  {
+	  Directory* dir = this->directories[name];
+	  if(dir == NULL)
+	  {
+		  if(this->index_path == "")
+		  {
+			  // RAM dir
+			  this->log(std::string("Creating ram directory for this: ") + name);
+			  dir = this->directories[name] = new RAMDirectory();
+		  }
+		  else
+		  {
+			  // FS dir
+			  this->log(std::string("Creating fs directory for this: ") + name);
+			  std::string full_path = this->index_path + name;
+			  if ( IndexReader::indexExists(full_path.c_str()) && IndexReader::isLocked(full_path.c_str())) 
+			  {
+				IndexReader::unlock(full_path.c_str());
+			  }
+			  dir = this->directories[name] = FSDirectory::getDirectory(full_path.c_str(), true);
+		  }
+	  }
+	  return dir;
   };
 
   void LuceneEngine::populate_document(lucene::document::Document& doc, const Json::Value& fields)
@@ -172,13 +198,10 @@ namespace js1
 
   QueryResult* LuceneEngine::create_query_result(const std::string& index, const std::string& query)
   {
-	  // TODO: Get this from a "Directory" object so we can do this in memory for tests
-	  const char* dir = index.c_str();
-
 	  // Need to work out if reader is thread-safe like in Java Lucene
 	  // It might need re-opening and swapping though, in which case
 	  // our own code wouldn't be thread-safe
-	  IndexReader* reader = IndexReader::open(dir);
+	  IndexReader* reader = this->get_reader(index);
 
 	  // Can re-use this too
 	  IndexSearcher searcher(reader);
@@ -245,7 +268,7 @@ namespace js1
 
   void LuceneEngine::log(const std::string& msg)
   {
-	  std::cout << msg;
+	  std::cout << msg << std::endl;
   }
 
 }

@@ -113,7 +113,7 @@ namespace EventStore.Projections.Core.Indexing
 
 			// Only one worker to process all the things
 			// TODO: Consider disposal
-			_lucene = Lucene.Create();
+			_lucene = Lucene.Create("Indexes/");
 			_worker = new IndexingWorker(db, _indexQueue, timeProvider, runProjections, _lucene);
 			_worker.SetupMessaging(indexInputBus);
 

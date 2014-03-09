@@ -50,6 +50,7 @@ namespace EventStore.Projections.Core.Indexing
         private IntPtr? _indexingHandle;
         private readonly Js1.LogDelegate _logHandler;
 		private readonly ILogger _logger;
+		private readonly string _indexPath;
 
         private void NativeLogHandler(string message)
         {
@@ -63,12 +64,12 @@ namespace EventStore.Projections.Core.Indexing
 
 		private void Initialize()
 		{
-            _indexingHandle = Js1.OpenIndexingSystem("Indexes", NativeLogHandler);
+            _indexingHandle = Js1.OpenIndexingSystem(_indexPath, NativeLogHandler);
 		}
 
-		public static Lucene Create()
+		public static Lucene Create(string indexPath)
 		{
-			var lucene = new Lucene();
+			var lucene = new Lucene(indexPath);
 			try
 			{
 				lucene.Initialize();
