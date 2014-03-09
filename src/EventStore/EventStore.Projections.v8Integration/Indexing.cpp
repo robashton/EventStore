@@ -25,19 +25,15 @@ namespace js1
 
   void LuceneEngine::handle(const std::string& cmd, const std::string& body)
   {
-	  std::string msg;
-	  msg += "Handling ";
-	  msg += cmd;
-	  msg += "\r\n\r\n";
-	  msg += body;
-	  this->log(msg);
-	  
 	  Json::Value parsed_body;
 	  Json::Reader reader;
 	  reader.parse(body, parsed_body);
 
 	  if(cmd == "index-creation-requested") {
 	    this->create_index(parsed_body);
+	  }
+	  else if(cmd == "index-reset-requested") {
+	    this->reset_index(parsed_body);
 	  }
 	  else if(cmd == "item-created") {
 	    this->create_item(parsed_body);
@@ -49,9 +45,25 @@ namespace js1
 
   void	LuceneEngine::create_index(const Json::Value& body) 
   {
-	  // NOTE: Failure if we call create and it already exists?
-	  // Provide explicit API for "create if not already there, reset if already there, etc"
 	  std::string name = body["name"].asString();
+	  if(this->writers[name] != NULL) {
+		  // TODO: Error?
+		  // Maybe just close and let this get cleared?
+		  return;
+	  }
+
+	  this->touch_writer(name);
+  };
+
+  void	LuceneEngine::reset_index(const Json::Value& body) 
+  {
+	  std::string name = body["name"].asString();
+	  if(this->writers[name] == NULL) {
+		  // TODO: Error?
+		  // Maybe just close and let this get cleared?
+		  return;
+	  }
+
 	  this->touch_writer(name);
   };
 
@@ -62,6 +74,7 @@ namespace js1
 	  std::string indexData = body["index_data"].asString();
 
 	  IndexWriter* writer = this->get_writer(indexName);
+	  
 	  Document document;
 
 	  // Populate it
@@ -143,6 +156,9 @@ namespace js1
 	}
   };
 
+  // TODO: Replace this with Lucene's conversion things
+  // Also TODO: Should probably start using wstring in our API
+  // And get rid of our UTF8Marshaling code
   std::wstring LuceneEngine::utf8_to_wstr(const std::string& in)
   {
 	  // This apparently works even for non ansi characters
@@ -156,16 +172,21 @@ namespace js1
 
   QueryResult* LuceneEngine::create_query_result(const std::string& index, const std::string& query)
   {
-	  // wow, so pointer, many leak, very C++
+	  // TODO: Get this from a "Directory" object so we can do this in memory for tests
 	  const char* dir = index.c_str();
-	  IndexReader* reader = IndexReader::open(dir, false, NULL);
-	  IndexSearcher* searcher = new IndexSearcher(reader);
-	  QueryParser* parser = new QueryParser(L"", &this->default_writing_analyzer);
+
+	  // Need to work out if reader is thread-safe like in Java Lucene
+	  // It might need re-opening and swapping though, in which case
+	  // our own code wouldn't be thread-safe
+	  IndexReader* reader = IndexReader::open(dir);
+
+	  // Can re-use this too
+	  IndexSearcher searcher(reader);
 
 	  std::wstring wquery = utf8_to_wstr(query);
 
-	  Query* parsedQuery = parser->parse(wquery.c_str());
-	  Hits* hits = searcher->search(parsedQuery);
+	  Query* parsedQuery = QueryParser::parse(wquery.c_str(), L"__id", &this->default_writing_analyzer);
+	  Hits* hits = searcher.search(parsedQuery);
 	  QueryResult* result = new QueryResult();
 
 	  result->num_results = hits->length();
@@ -195,8 +216,13 @@ namespace js1
 	  result->num_bytes = resultJson.length();
 	  std::copy(resultJson.begin(), resultJson.end(), result->json);
 	  
-	  //delete searcher;
-	  //delete reader;
+	  // TODO: try catch etc
+	  _CLLDELETE(parsedQuery);
+	  _CLLDELETE(hits);
+
+	  searcher.close();
+
+	  _CLLDELETE(reader);
 
 	  return result;
   };

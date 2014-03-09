@@ -27,7 +27,10 @@ namespace js1
 		void free_query_result(QueryResult* result);
 		void flush();
 	private:
+
+		// Handlers
 		void create_index(const Json::Value& body);
+		void reset_index(const Json::Value& body);
 		void create_item(const Json::Value& body);
 		void update_item(const Json::Value& body);
 

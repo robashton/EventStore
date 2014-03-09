@@ -233,7 +233,7 @@ function scope($on, $notify) {
         eventProcessor.emit(message);
     }
 
-    function startIndex(indexName) {
+    function createIndex(indexName) {
 		var eventBody = {  indexName: indexName };
 		var message = { 
 		  streamId: '$indexing', 
@@ -243,8 +243,18 @@ function scope($on, $notify) {
 		eventProcessor.emit(message);
     }
 
-    function createIndexItem(indexName, itemId, fields) {
-        var eventBody = { index_name: indexName, item_id: itemId, index_data: JSON.stringify(fields), fields: fields};
+    function resetIndex(indexName) {
+		var eventBody = {  indexName: indexName };
+		var message = { 
+		  streamId: '$indexing', 
+		  eventName: 'index-reset-requested', 
+		  body: JSON.stringify(eventBody), 
+		  isJson: true };
+		eventProcessor.emit(message);
+    }
+
+    function createIndexItem(indexName, itemId, fields, doc) {
+        var eventBody = { index_name: indexName, item_id: itemId, index_data: JSON.stringify(doc), fields: fields};
 		var message = { 
 		  streamId: '$indexing', 
 		  eventName: 'item-created', 
@@ -253,8 +263,8 @@ function scope($on, $notify) {
 		eventProcessor.emit(message);
     }
 
-    function updateIndexItem(indexName, itemId, fields) {
-        var eventBody = { index_name: indexName, item_id: itemId, index_data: JSON.stringify(fields), fields: fields};
+    function updateIndexItem(indexName, itemId, fields, doc) {
+        var eventBody = { index_name: indexName, item_id: itemId, index_data: JSON.stringify(doc), fields: fields};
 		var message = { 
 		  streamId: '$indexing', 
 		  eventName: 'item-updated', 
@@ -262,7 +272,6 @@ function scope($on, $notify) {
 		  isJson: true };
 		eventProcessor.emit(message);
     }
-
 
     function linkTo(streamId, event, metadata) {
         var message = { streamId: streamId, eventName: "$>", body: event.sequenceNumber + "@" + event.streamId, metadata: metadata, isJson: false };
@@ -310,7 +319,8 @@ function scope($on, $notify) {
         fromStreamsMatching: fromStreamsMatching,
 
         createIndexItem: createIndexItem,
-        startIndex: startIndex,
+        createIndex: createIndex,
+		resetIndex: resetIndex,
         updateIndexItem: updateIndexItem,
 
         options: options,
