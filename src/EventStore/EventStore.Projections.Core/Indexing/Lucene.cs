@@ -57,9 +57,9 @@ namespace EventStore.Projections.Core.Indexing
             _logger.Info("Message from native lucene: {0}", message);
         }
 
-		private Lucene() 
+		private Lucene(string indexPath) 
 		{
-
+			_indexPath = indexPath;
 		}
 
 		private void Initialize()
