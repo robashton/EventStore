@@ -49,17 +49,19 @@ namespace EventStore.Projections.Core.Indexing
 	{
 		private EventStore.Projections.Core.Indexing.Indexing _indexing;
 		private readonly RunProjections _runProjections;
+		private readonly string _indexPath;
 
-		public IndexingSystem(RunProjections runProjections) 
+		public IndexingSystem(string indexPath, RunProjections runProjections) 
 		{
 			_runProjections = runProjections;
+			_indexPath = indexPath;
 		}
 
         public void Register(
             TFChunkDb db, QueuedHandler mainQueue, ISubscriber mainBus, TimerService timerService,
             ITimeProvider timeProvider, IHttpForwarder httpForwarder, HttpService[] httpServices, IPublisher networkSendService)
         {
-            _indexing = new EventStore.Projections.Core.Indexing.Indexing(
+            _indexing = new EventStore.Projections.Core.Indexing.Indexing(_indexPath,
                 db, mainQueue, mainBus, timerService, timeProvider, httpForwarder, httpServices, networkSendService,
 				runProjections: _runProjections);
         }
@@ -85,11 +87,14 @@ namespace EventStore.Projections.Core.Indexing
 		private QueuedHandler _webQueue;
 		private IndexingController _web;
 		private Lucene _lucene;
+		private readonly string _indexPath;
 
         public Indexing(
+			string indexPath,
             TFChunkDb db, QueuedHandler mainQueue, ISubscriber mainBus, TimerService timerService, ITimeProvider timeProvider,
             IHttpForwarder httpForwarder, HttpService[] httpServices, IPublisher networkSendQueue, RunProjections runProjections)
         {
+		  _indexPath = indexPath;
             SetupMessaging(
                 db, mainQueue, mainBus, timerService, timeProvider, httpForwarder, httpServices, networkSendQueue,
                 runProjections);
@@ -113,7 +118,7 @@ namespace EventStore.Projections.Core.Indexing
 
 			// Only one worker to process all the things
 			// TODO: Consider disposal
-			_lucene = Lucene.Create("Indexes/");
+			_lucene = Lucene.Create(_indexPath);
 			_worker = new IndexingWorker(db, _indexQueue, timeProvider, runProjections, _lucene);
 			_worker.SetupMessaging(indexInputBus);
 

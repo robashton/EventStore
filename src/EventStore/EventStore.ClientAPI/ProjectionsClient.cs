@@ -116,6 +116,11 @@ namespace EventStore.ClientAPI
             return SendDelete(endPoint.ToHttpUrl("/projection/{0}", name), userCredentials, HttpStatusCode.OK);
         }
 
+		public Task<string> QueryIndexRaw(IPEndPoint endPoint, string index, string query, UserCredentials userCredentials = null)
+		{
+            return SendGet(endPoint.ToHttpUrl("/query/{0}/{1}", index, query), userCredentials, HttpStatusCode.OK);
+		}
+
         private Task<string> SendGet(string url, UserCredentials userCredentials, int expectedCode)
         {
             var source = new TaskCompletionSource<string>();

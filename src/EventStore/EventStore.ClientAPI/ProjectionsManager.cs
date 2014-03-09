@@ -380,5 +380,19 @@ namespace EventStore.ClientAPI
             Ensure.NotNullOrEmpty(name, "name");
             return _client.Delete(_httpEndPoint, name, userCredentials);
         }
+
+		// TODO: An actual API, possibly not as a part of projections
+		public Task<string> QueryIndexRawAsync(string index, string query)
+		{
+            Ensure.NotNullOrEmpty(index, "index");
+            Ensure.NotNullOrEmpty(query, "query");
+			return _client.QueryIndexRaw(_httpEndPoint, index, query);
+		}
+
+		// TODO: An actual API, possibly not as a part of projections
+		public string QueryIndexRaw(string index, string query)
+		{
+			return QueryIndexRawAsync(index, query).Result;
+		}
     }
 }

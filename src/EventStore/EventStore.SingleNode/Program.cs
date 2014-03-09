@@ -102,7 +102,7 @@ namespace EventStore.SingleNode
                 ? new[] {NodeSubsystems.Projections}
                 : new NodeSubsystems[0];
             _projections = new Projections.Core.ProjectionsSubsystem(opts.ProjectionThreads, runProjections);
-			_indexing = new Projections.Core.Indexing.IndexingSystem(runProjections);
+			_indexing = new Projections.Core.Indexing.IndexingSystem("Indexes/", runProjections);
             _node = new SingleVNode(db, vnodeSettings, dbVerifyHashes, ESConsts.MemTableEntryCount, _projections, _indexing);
             RegisterWebControllers(enabledNodeSubsystems);
             RegisterUIProjections();
