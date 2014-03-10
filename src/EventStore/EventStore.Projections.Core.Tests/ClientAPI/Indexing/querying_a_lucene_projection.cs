@@ -73,6 +73,13 @@ fromStream('chat-GeneralChat')
 			var expected = QueryIndex<ChatMessage>("ChatMessages", "Sender:alice").SingleOrDefault();
 			Assert.That(expected.Sender, Is.EqualTo("alice"));
         }
+		
+        [Test, Category("Network")]
+        public void can_search_by_wildcard()
+        {
+			var expected = QueryIndex<ChatMessage>("ChatMessages", "*:*");
+			Assert.That(expected.Length, Is.EqualTo(3));
+        }
 
 		class ChatMessage
 		{
