@@ -48,15 +48,15 @@ fromStream('chat-GeneralChat')
 	  'ChatMessages',
 	  'chat-' + e.sequenceNumber,
 	  [{ name: 'Sender', value: e.body.Sender }],  e.body )}})"); // Index the whole event
-            PostEvent("chat-GeneralChat", "Message", "{ \"Sender\": \"bob\" }");
-            PostEvent("chat-GeneralChat", "Message", "{ \"Sender\": \"alice\" }");
-            PostEvent("chat-GeneralChat", "Message", "{ \"Sender\": \"craig\" }");
             WaitIdle();
         }
 
         protected override void When()
         {
             base.When();
+            PostEvent("chat-GeneralChat", "Message", "{ \"Sender\": \"bob\" }");
+            PostEvent("chat-GeneralChat", "Message", "{ \"Sender\": \"alice\" }");
+            PostEvent("chat-GeneralChat", "Message", "{ \"Sender\": \"craig\" }");
             WaitIdle();
         }
 
