@@ -106,8 +106,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-	<Compile Include="Indexing\specification_with_all_indexing_running.cs" />
-	<Compile Include="Indexing\querying_a_lucene_projection.cs" />
+	<Compile Include="ClientAPI\specification_with_indexing_running.cs" />
+	<Compile Include="ClientAPI\Indexing\querying_a_lucene_projection.cs" />
     <Compile Include="ClientAPI\Cluster\specification_with_standard_projections_runnning.cs" />
     <Compile Include="ClientAPI\event_by_type_index.cs" />
     <Compile Include="ClientAPI\event_by_type_index\when_reverting_after_index_catches_up.cs" />

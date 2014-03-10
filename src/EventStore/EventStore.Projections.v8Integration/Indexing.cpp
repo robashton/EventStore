@@ -201,18 +201,27 @@ namespace js1
 	  // Need to work out if reader is thread-safe like in Java Lucene
 	  // It might need re-opening and swapping though, in which case
 	  // our own code wouldn't be thread-safe
-	  IndexReader* reader = this->get_reader(index);
+	  Directory* dir = this->get_directory(index);
 
-	  // Can re-use this too
-	  IndexSearcher searcher(reader);
+	  IndexSearcher searcher(dir);
 
 	  std::wstring wquery = utf8_to_wstr(query);
 
+	  this->log(std::string("About to parse query: ") + query);
+
 	  Query* parsedQuery = QueryParser::parse(wquery.c_str(), L"__id", &this->default_writing_analyzer);
+
+	  this->log(std::string("Parsed: ") + query);
+
 	  Hits* hits = searcher.search(parsedQuery);
+
+	  this->log(std::string("Searching for: ") + query);
 	  QueryResult* result = new QueryResult();
 
+
 	  result->num_results = hits->length();
+
+	  this->log(std::string("Got some results"));
 
 	  Json::Value results(Json::arrayValue);
 	  Json::Reader jsonReader;
@@ -242,8 +251,6 @@ namespace js1
 	  _CLLDELETE(hits);
 
 	  searcher.close();
-
-	  _CLLDELETE(reader);
 
 	  return result;
   };

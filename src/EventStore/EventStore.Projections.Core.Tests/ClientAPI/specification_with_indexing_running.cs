@@ -43,7 +43,7 @@ using EventStore.Projections.Core.Services.Processing;
 using NUnit.Framework;
 using ResolvedEvent = EventStore.ClientAPI.ResolvedEvent;
 
-namespace EventStore.Projections.Core.Tests.Indexing
+namespace EventStore.Projections.Core.Tests.ClientAPI
 {
 	[Category("Indexing")]
     public class specification_with_indexing_runnning : SpecificationWithDirectoryPerTestFixture

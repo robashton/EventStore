@@ -29,7 +29,7 @@
 using NUnit.Framework;
 using System.Linq;
 
-namespace EventStore.Projections.Core.Tests.Indexing
+namespace EventStore.Projections.Core.Tests.ClientAPI.Indexing
 {
     [TestFixture]
     public class querying_a_lucene_projection : specification_with_indexing_runnning
@@ -65,6 +65,13 @@ fromStream('chat-GeneralChat')
         {
 			var expected = QueryIndex<ChatMessage>("ChatMessages", "chat-0").SingleOrDefault();
 			Assert.That(expected.Sender, Is.EqualTo("bob"));
+        }
+
+        [Test, Category("Network")]
+        public void can_search_by_exact_match()
+        {
+			var expected = QueryIndex<ChatMessage>("ChatMessages", "Sender:alice").SingleOrDefault();
+			Assert.That(expected.Sender, Is.EqualTo("alice"));
         }
 
 		class ChatMessage

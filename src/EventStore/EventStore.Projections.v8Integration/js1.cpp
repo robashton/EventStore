@@ -9,6 +9,8 @@
 #include "PreludeScope.h"
 #include "Indexing.h"
 
+#include <iostream>
+
 extern "C" 
 {
 	JS1_API int js1_api_version()
