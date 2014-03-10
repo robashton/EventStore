@@ -45,7 +45,7 @@ namespace EventStore.Projections.Core.Indexing
                               IHandle<EventReaderSubscriptionMessage.PartitionEofReached>,
                               IHandle<EventReaderSubscriptionMessage.CheckpointSuggested>,
                               IHandle<EventReaderSubscriptionMessage.NotAuthorized>,
-							  IHandle<IndexingMessage.Tick>
+                              IHandle<IndexingMessage.Tick>
     {
         private readonly ILogger _logger = LogManager.GetLoggerFor<IndexingWorker>();
 
@@ -64,24 +64,24 @@ namespace EventStore.Projections.Core.Indexing
         private Guid _subscriptionId;
         private CheckpointTag _lastReaderPosition;
         private CheckpointTag _fromPosition;
-		private readonly Lucene _lucene;
-		private bool _tickPending;
-		private IPublisher _publisher;
+        private readonly Lucene _lucene;
+        private bool _tickPending;
+        private IPublisher _publisher;
 
         public IndexingReader(
-			IPublisher publisher,
+            IPublisher publisher,
             PublishSubscribeDispatcher
                 <Guid, ReaderSubscriptionManagement.Subscribe,
                 ReaderSubscriptionManagement.ReaderSubscriptionManagementMessage, EventReaderSubscriptionMessage>
                 subscriptionDispatcher, ITimeProvider timeProvider,
-				Lucene lucene)
+                Lucene lucene)
         {
             if (subscriptionDispatcher == null) throw new ArgumentNullException("subscriptionDispatcher");
-			_publisher = publisher;
+            _publisher = publisher;
             _subscriptionDispatcher = subscriptionDispatcher;
             _timeProvider = timeProvider;
-			_lucene = lucene;
-			_logger.Info("Creating a goddamned IndexingReader");
+            _lucene = lucene;
+            _logger.Info("Creating a goddamned IndexingReader");
         }
 
         public void Start()
@@ -90,42 +90,42 @@ namespace EventStore.Projections.Core.Indexing
             sourceDefinition.FromStream("$indexing");
             sourceDefinition.AllEvents();
 
-			// TODO: Get this from a management stream
-			_fromPosition = CheckpointTag.FromStreamPosition(0, "$indexing", -1);
-			var readerStrategy = ReaderStrategy.Create(0, sourceDefinition.Build(), _timeProvider, stopOnEof: true, runAs: SystemAccount.Principal);
+            // TODO: Get this from a management stream
+            _fromPosition = CheckpointTag.FromStreamPosition(0, "$indexing", -1);
+            var readerStrategy = ReaderStrategy.Create(0, sourceDefinition.Build(), _timeProvider, stopOnEof: true, runAs: SystemAccount.Principal);
             var readerOptions = new ReaderSubscriptionOptions(1024*1024, 1024, stopOnEof: false, stopAfterNEvents: null);
             _subscriptionId =
                 _subscriptionDispatcher.PublishSubscribe(
                     new ReaderSubscriptionManagement.Subscribe(
                         Guid.NewGuid(), _fromPosition, readerStrategy, readerOptions), this);
-						_logger.Info("Subscribing for indexing with subscription {0}", _subscriptionId);
-			        }
+                        _logger.Info("Subscribing for indexing with subscription {0}", _subscriptionId);
+                    }
 
 
-		public void EnsureTickPending() 
-		{
-			if(_tickPending) return;
-			_tickPending = true;
-			_publisher.Publish(new IndexingMessage.Tick());
-		}
+        public void EnsureTickPending() 
+        {
+            if(_tickPending) return;
+            _tickPending = true;
+            _publisher.Publish(new IndexingMessage.Tick());
+        }
 
-		public void Handle(IndexingMessage.Tick msg) 
-		{
-			_tickPending = false;
-			this.Flush();
-		}
+        public void Handle(IndexingMessage.Tick msg) 
+        {
+            _tickPending = false;
+            this.Flush();
+        }
 
-		public void Stop() 
-		{
-			this.Unsubscribe();
-		}
+        public void Stop() 
+        {
+            this.Unsubscribe();
+        }
 
         public void Handle(EventReaderSubscriptionMessage.CommittedEventReceived message)
         {
-			_logger.Info("Sticking a message in my queue");
+            _logger.Info("Sticking a message in my queue");
             _lastReaderPosition = message.CheckpointTag;
             _batch.Add(new TaggedResolvedEvent(message.Data, message.EventCategory, message.CheckpointTag));
-			this.EnsureTickPending();
+            this.EnsureTickPending();
         }
 
         public void Handle(EventReaderSubscriptionMessage.CheckpointSuggested message)
@@ -136,35 +136,35 @@ namespace EventStore.Projections.Core.Indexing
 
         public void Handle(EventReaderSubscriptionMessage.NotAuthorized message)
         {
-			_logger.Error("This should never happen");
+            _logger.Error("This should never happen");
         }
         public void Handle(EventReaderSubscriptionMessage.PartitionEofReached message)
         {
-			_logger.Error("This should never happen");
+            _logger.Error("This should never happen");
         }
         public void Handle(EventReaderSubscriptionMessage.EofReached message)
         {
-			_logger.Error("This should never happen");
+            _logger.Error("This should never happen");
         }
 
         private void Unsubscribe()
         {
-			_logger.Info ("Unsubscribing");
+            _logger.Info ("Unsubscribing");
             _subscriptionDispatcher.Cancel(_subscriptionId);
         }
 
         private void Flush()
         {
-			_logger.Info("Flushing");
-			foreach(var @event in _batch) 
-			{
-				_lucene.Write(@event.ResolvedEvent.EventType, @event.ResolvedEvent.Data);
-			}
-			_lucene.Flush();
-			
-			// publish commit point to indexing management stream
-			_batch.Clear();
-			_logger.Info("Flushed");
+            _logger.Info("Flushing");
+            foreach(var @event in _batch) 
+            {
+                _lucene.Write(@event.ResolvedEvent.EventType, @event.ResolvedEvent.Data);
+            }
+            _lucene.Flush();
+            
+            // publish commit point to indexing management stream
+            _batch.Clear();
+            _logger.Info("Flushed");
         }
     }
 }

@@ -45,18 +45,18 @@ using EventStore.Projections.Core.Services.Processing;
 namespace EventStore.Projections.Core.Indexing
 {
     public class IndexingWorker : IHandle<SystemMessage.StateChangeMessage>,
-								  IHandle<IndexingMessage.Start>
+                                  IHandle<IndexingMessage.Start>
     {
-		private readonly ILogger _logger = LogManager.GetLoggerFor<IndexingWorker>();
+        private readonly ILogger _logger = LogManager.GetLoggerFor<IndexingWorker>();
         private readonly RunProjections _runProjections;
         private readonly InMemoryBus _coreOutput;
         private readonly EventReaderCoreService _eventReaderCoreService;
         private readonly ReaderSubscriptionDispatcher _subscriptionDispatcher;
         private readonly IODispatcher _ioDispatcher;
-		private IndexingReader _reader;
-		private readonly ITimeProvider _timeProvider;
-		private readonly Lucene _lucene;
-		private bool _started;
+        private IndexingReader _reader;
+        private readonly ITimeProvider _timeProvider;
+        private readonly Lucene _lucene;
+        private bool _started;
 
         public IndexingWorker(TFChunkDb db, QueuedHandler inputQueue, ITimeProvider timeProvider, RunProjections runProjections, Lucene lucene)
         {
@@ -64,15 +64,15 @@ namespace EventStore.Projections.Core.Indexing
             Ensure.NotNull(db, "db");
 
             _coreOutput = new InMemoryBus("Indexing Output");
-			_timeProvider = timeProvider;
+            _timeProvider = timeProvider;
 
             IPublisher publisher = CoreOutput;
             _subscriptionDispatcher = new ReaderSubscriptionDispatcher(publisher);
             _ioDispatcher = new IODispatcher(publisher, new PublishEnvelope(inputQueue));
             _eventReaderCoreService = new EventReaderCoreService(
                 publisher, _ioDispatcher, 10, db.Config.WriterCheckpoint, runHeadingReader: runProjections >= RunProjections.System);
-			_lucene = lucene;
-			_reader = new IndexingReader(CoreOutput, _subscriptionDispatcher, _timeProvider, _lucene);
+            _lucene = lucene;
+            _reader = new IndexingReader(CoreOutput, _subscriptionDispatcher, _timeProvider, _lucene);
         }
 
         public InMemoryBus CoreOutput
@@ -80,29 +80,29 @@ namespace EventStore.Projections.Core.Indexing
             get { return _coreOutput; }
         }
 
-		public void Handle(SystemMessage.StateChangeMessage msg) 
-		{
-			if(!_started)
-			{
-				_started = true;
-				_logger.Info("Sending start messages");
-				CoreOutput.Publish(new Messages.ReaderCoreServiceMessage.StartReader());
-				CoreOutput.Publish(new IndexingMessage.Start());
-			}
-		}
+        public void Handle(SystemMessage.StateChangeMessage msg) 
+        {
+            if(!_started)
+            {
+                _started = true;
+                _logger.Info("Sending start messages");
+                CoreOutput.Publish(new Messages.ReaderCoreServiceMessage.StartReader());
+                CoreOutput.Publish(new IndexingMessage.Start());
+            }
+        }
 
-		public void Handle(IndexingMessage.Start msg)
-		{
-			_logger.Info("Starting indexing system for realsies");
-			_reader.Start();
-		}
+        public void Handle(IndexingMessage.Start msg)
+        {
+            _logger.Info("Starting indexing system for realsies");
+            _reader.Start();
+        }
 
         public void SetupMessaging(IBus coreInputBus)
         {
-			coreInputBus.Subscribe<SystemMessage.StateChangeMessage>(this);
-			coreInputBus.Subscribe<IndexingMessage.Start>(this);
+            coreInputBus.Subscribe<SystemMessage.StateChangeMessage>(this);
+            coreInputBus.Subscribe<IndexingMessage.Start>(this);
 
-			// NOTE: I don't actually know if all of these are needed, but they seemed like likely suspects
+            // NOTE: I don't actually know if all of these are needed, but they seemed like likely suspects
             coreInputBus.Subscribe(_subscriptionDispatcher.CreateSubscriber<EventReaderSubscriptionMessage.CheckpointSuggested>());
             coreInputBus.Subscribe(_subscriptionDispatcher.CreateSubscriber<EventReaderSubscriptionMessage.CommittedEventReceived>());
             coreInputBus.Subscribe(_subscriptionDispatcher.CreateSubscriber<EventReaderSubscriptionMessage.EofReached>());
@@ -114,11 +114,11 @@ namespace EventStore.Projections.Core.Indexing
             coreInputBus.Subscribe(_subscriptionDispatcher.CreateSubscriber<EventReaderSubscriptionMessage.NotAuthorized>());
             coreInputBus.Subscribe(_subscriptionDispatcher.CreateSubscriber<EventReaderSubscriptionMessage.ReaderAssignedReader>());
 
-			coreInputBus.Subscribe<ClientMessage.ReadStreamEventsForwardCompleted>(_ioDispatcher.ForwardReader);
-			coreInputBus.Subscribe<ClientMessage.ReadStreamEventsBackwardCompleted>(_ioDispatcher.BackwardReader);
-			coreInputBus.Subscribe<ClientMessage.WriteEventsCompleted>(_ioDispatcher.Writer);
-			coreInputBus.Subscribe<ClientMessage.DeleteStreamCompleted>(_ioDispatcher.StreamDeleter);
-			coreInputBus.Subscribe<IODispatcherDelayedMessage>(_ioDispatcher);
+            coreInputBus.Subscribe<ClientMessage.ReadStreamEventsForwardCompleted>(_ioDispatcher.ForwardReader);
+            coreInputBus.Subscribe<ClientMessage.ReadStreamEventsBackwardCompleted>(_ioDispatcher.BackwardReader);
+            coreInputBus.Subscribe<ClientMessage.WriteEventsCompleted>(_ioDispatcher.Writer);
+            coreInputBus.Subscribe<ClientMessage.DeleteStreamCompleted>(_ioDispatcher.StreamDeleter);
+            coreInputBus.Subscribe<IODispatcherDelayedMessage>(_ioDispatcher);
 
             coreInputBus.Subscribe<ReaderCoreServiceMessage.ReaderTick>(_eventReaderCoreService);
             coreInputBus.Subscribe<ReaderCoreServiceMessage.StartReader>(_eventReaderCoreService);
@@ -138,7 +138,7 @@ namespace EventStore.Projections.Core.Indexing
             coreInputBus.Subscribe<ReaderSubscriptionMessage.EventReaderPartitionMeasured>(_eventReaderCoreService);
             coreInputBus.Subscribe<ReaderSubscriptionMessage.EventReaderNotAuthorized>(_eventReaderCoreService);
 
-			coreInputBus.Subscribe<IndexingMessage.Tick>(_reader);
+            coreInputBus.Subscribe<IndexingMessage.Tick>(_reader);
 
             //NOTE: message forwarding is set up outside (for Read/Write events)
         }

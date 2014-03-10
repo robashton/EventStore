@@ -72,22 +72,22 @@ namespace EventStore.Projections.Core.Indexing
                      HttpMethod.Get, OnQuery, Codec.NoCodecs, SupportedCodecs);
         }
 
-		private void OnQuery(HttpEntityManager http, UriTemplateMatch match)
-		{
+        private void OnQuery(HttpEntityManager http, UriTemplateMatch match)
+        {
             if (_httpForwarder.ForwardRequest(http))
                 return;
 
             var envelope = new SendToHttpEnvelope<IndexingMessage.QueryResult>(
                 _networkSendQueue, http, StateFormatter, StateConfigurator, ErrorsEnvelope(http));
 
-			_logger.Info("Publishing");
+            _logger.Info("Publishing");
 
             Publish(new IndexingMessage.QueryRequest(envelope, match.BoundVariables["index"], match.BoundVariables["query"]));
-		}
+        }
 
         private string StateFormatter(ICodec codec, IndexingMessage.QueryResult msg)
         {
-			  _logger.Info("StateFormatter");
+              _logger.Info("StateFormatter");
 //            if (state.Exception != null)
 //                return state.Exception.ToString();
 //            else
@@ -96,8 +96,8 @@ namespace EventStore.Projections.Core.Indexing
 
         private ResponseConfiguration StateConfigurator(ICodec codec, IndexingMessage.QueryResult msg)
         {
-			_logger.Info("StateConfigurator");
-			return Configure.Ok("text/html", Helper.UTF8NoBom, null, null, false);
+            _logger.Info("StateConfigurator");
+            return Configure.Ok("text/html", Helper.UTF8NoBom, null, null, false);
 //            if (state.Exception != null)
 //                return Configure.InternalServerError();
 //            else
@@ -109,11 +109,11 @@ namespace EventStore.Projections.Core.Indexing
 
         private IEnvelope ErrorsEnvelope(HttpEntityManager http)
         {
-			_logger.Info("ErrorsEnvelope");
+            _logger.Info("ErrorsEnvelope");
             return new SendToHttpEnvelope<IndexingMessage.NotFound>(
                 _networkSendQueue, http, NotFoundFormatter, NotFoundConfigurator,
                 new SendToHttpEnvelope<IndexingMessage.OperationFailed>(
-				  _networkSendQueue, http, OperationFailedFormatter, OperationFailedConfigurator, null));
+                  _networkSendQueue, http, OperationFailedFormatter, OperationFailedConfigurator, null));
         }
 
         private ResponseConfiguration NotFoundConfigurator(ICodec codec, IndexingMessage.NotFound message)
@@ -145,6 +145,6 @@ namespace EventStore.Projections.Core.Indexing
             Publish( new IndexingMessage.Start());
 
             http.ReplyStatus(200, "Ok", Console.WriteLine);
-		}
+        }
     }
 }

@@ -37,89 +37,89 @@ using System.Text;
 
 namespace EventStore.Projections.Core.Indexing
 {
-	public class Lucene
-	{
-		[StructLayout(LayoutKind.Sequential)]
-		public struct NativeQueryResult
-		{
-			public IntPtr json;
-			public int num_results;
-			public int num_bytes;
-		}
+    public class Lucene
+    {
+        [StructLayout(LayoutKind.Sequential)]
+        public struct NativeQueryResult
+        {
+            public IntPtr json;
+            public int num_results;
+            public int num_bytes;
+        }
 
         private IntPtr? _indexingHandle;
         private readonly Js1.LogDelegate _logHandler;
-		private readonly ILogger _logger;
-		private readonly string _indexPath;
+        private readonly ILogger _logger;
+        private readonly string _indexPath;
 
         private void NativeLogHandler(string message)
         {
             _logger.Info("Message from native lucene: {0}", message);
         }
 
-		private Lucene(string indexPath) 
-		{
-			_indexPath = indexPath;
-		}
+        private Lucene(string indexPath) 
+        {
+            _indexPath = indexPath;
+        }
 
-		private void Initialize()
-		{
+        private void Initialize()
+        {
             _indexingHandle = Js1.OpenIndexingSystem(_indexPath, NativeLogHandler);
-		}
+        }
 
-		public static Lucene Create(string indexPath)
-		{
-			var lucene = new Lucene(indexPath);
-			try
-			{
-				lucene.Initialize();
-			}
-			catch(Exception ex) 
-			{
-				lucene.Dispose();
-				throw ex;
-			}
-			return lucene;
-		}
+        public static Lucene Create(string indexPath)
+        {
+            var lucene = new Lucene(indexPath);
+            try
+            {
+                lucene.Initialize();
+            }
+            catch(Exception ex) 
+            {
+                lucene.Dispose();
+                throw ex;
+            }
+            return lucene;
+        }
 
-		public void Write(string ev, string data)
-		{
-			Js1.HandleIndexCommand(_indexingHandle.Value, ev, data);
-		}
+        public void Write(string ev, string data)
+        {
+            Js1.HandleIndexCommand(_indexingHandle.Value, ev, data);
+        }
 
-		public string Query(string index, string query) 
-		{
-			IntPtr? result = null;
-			NativeQueryResult unpackedResult;
-			Byte[] unpackedJson;
+        public string Query(string index, string query) 
+        {
+            IntPtr? result = null;
+            NativeQueryResult unpackedResult;
+            Byte[] unpackedJson;
 
-			try
-			{
-				result = Js1.CreateIndexQueryResult(_indexingHandle.Value, index, query);
-				unpackedResult = (NativeQueryResult)Marshal.PtrToStructure(result.Value, typeof(NativeQueryResult));
-				unpackedJson = new Byte[unpackedResult.num_bytes];
-				Marshal.Copy(unpackedResult.json, unpackedJson, 0, unpackedResult.num_bytes);
-				return Encoding.UTF8.GetString(unpackedJson);
-			}
-			finally
-			{
-				if(result != null)
-				  Js1.FreeIndexQueryResult(_indexingHandle.Value, result.Value);
-			}
-		}
+            try
+            {
+                result = Js1.CreateIndexQueryResult(_indexingHandle.Value, index, query);
+                unpackedResult = (NativeQueryResult)Marshal.PtrToStructure(result.Value, typeof(NativeQueryResult));
+                unpackedJson = new Byte[unpackedResult.num_bytes];
+                Marshal.Copy(unpackedResult.json, unpackedJson, 0, unpackedResult.num_bytes);
+                return Encoding.UTF8.GetString(unpackedJson);
+            }
+            finally
+            {
+                if(result != null)
+                  Js1.FreeIndexQueryResult(_indexingHandle.Value, result.Value);
+            }
+        }
 
-		public void Flush() 
-		{
-			Js1.FlushIndexingSystem(_indexingHandle.Value);
-		}
+        public void Flush() 
+        {
+            Js1.FlushIndexingSystem(_indexingHandle.Value);
+        }
 
-		public void Dispose() 
-		{
-			if(_indexingHandle != null) 
-			{
-				Js1.CloseIndexingSystem(_indexingHandle.Value);
-				_indexingHandle = null;
-			}
-		}
-	}
+        public void Dispose() 
+        {
+            if(_indexingHandle != null) 
+            {
+                Js1.CloseIndexingSystem(_indexingHandle.Value);
+                _indexingHandle = null;
+            }
+        }
+    }
 }

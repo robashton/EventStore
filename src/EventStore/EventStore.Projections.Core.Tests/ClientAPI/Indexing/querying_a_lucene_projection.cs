@@ -41,13 +41,13 @@ namespace EventStore.Projections.Core.Tests.ClientAPI.Indexing
 fromStream('chat-GeneralChat')
 .when({
   $init: function() {
-	return {}
+    return {}
   },
   Message: function(s, e) {
-	createIndexItem(
-	  'ChatMessages',
-	  'chat-' + e.sequenceNumber,
-	  [{ name: 'Sender', value: e.body.Sender }],  e.body )}})"); // Index the whole event
+    createIndexItem(
+      'ChatMessages',
+      'chat-' + e.sequenceNumber,
+      [{ name: 'Sender', value: e.body.Sender }],  e.body )}})"); // Index the whole event
             WaitIdle();
         }
 
@@ -63,27 +63,27 @@ fromStream('chat-GeneralChat')
         [Test, Category("Network")]
         public void can_lookup_by_id()
         {
-			var expected = QueryIndex<ChatMessage>("ChatMessages", "chat-0").SingleOrDefault();
-			Assert.That(expected.Sender, Is.EqualTo("bob"));
+            var expected = QueryIndex<ChatMessage>("ChatMessages", "chat-0").SingleOrDefault();
+            Assert.That(expected.Sender, Is.EqualTo("bob"));
         }
 
         [Test, Category("Network")]
         public void can_search_by_exact_match()
         {
-			var expected = QueryIndex<ChatMessage>("ChatMessages", "Sender:alice").SingleOrDefault();
-			Assert.That(expected.Sender, Is.EqualTo("alice"));
+            var expected = QueryIndex<ChatMessage>("ChatMessages", "Sender:alice").SingleOrDefault();
+            Assert.That(expected.Sender, Is.EqualTo("alice"));
         }
-		
+        
         [Test, Category("Network")]
         public void can_search_by_wildcard()
         {
-			var expected = QueryIndex<ChatMessage>("ChatMessages", "*:*");
-			Assert.That(expected.Length, Is.EqualTo(3));
+            var expected = QueryIndex<ChatMessage>("ChatMessages", "*:*");
+            Assert.That(expected.Length, Is.EqualTo(3));
         }
 
-		class ChatMessage
-		{
-			public string Sender { get; set; }
-		}
+        class ChatMessage
+        {
+            public string Sender { get; set; }
+        }
     }
 }

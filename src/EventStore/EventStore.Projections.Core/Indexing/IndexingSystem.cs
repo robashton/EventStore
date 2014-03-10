@@ -45,17 +45,17 @@ using EventStore.Projections.Core.Services.Processing;
 
 namespace EventStore.Projections.Core.Indexing
 {
-	public class IndexingSystem : ISubsystem 
-	{
-		private EventStore.Projections.Core.Indexing.Indexing _indexing;
-		private readonly RunProjections _runProjections;
-		private readonly string _indexPath;
+    public class IndexingSystem : ISubsystem 
+    {
+        private EventStore.Projections.Core.Indexing.Indexing _indexing;
+        private readonly RunProjections _runProjections;
+        private readonly string _indexPath;
 
-		public IndexingSystem(string indexPath, RunProjections runProjections) 
-		{
-			_runProjections = runProjections;
-			_indexPath = indexPath;
-		}
+        public IndexingSystem(string indexPath, RunProjections runProjections) 
+        {
+            _runProjections = runProjections;
+            _indexPath = indexPath;
+        }
 
         public void Register(
             TFChunkDb db, QueuedHandler mainQueue, ISubscriber mainBus, TimerService timerService,
@@ -63,7 +63,7 @@ namespace EventStore.Projections.Core.Indexing
         {
             _indexing = new EventStore.Projections.Core.Indexing.Indexing(_indexPath,
                 db, mainQueue, mainBus, timerService, timeProvider, httpForwarder, httpServices, networkSendService,
-				runProjections: _runProjections);
+                runProjections: _runProjections);
         }
 
         public void Start()
@@ -75,26 +75,26 @@ namespace EventStore.Projections.Core.Indexing
         {
            _indexing.Stop();
         }
-	}
+    }
 
-	public sealed class Indexing : IHandle<IndexingMessage.QueryRequest>
-	{
+    public sealed class Indexing : IHandle<IndexingMessage.QueryRequest>
+    {
         public const int VERSION = 3;
 
         private QueuedHandler _indexQueue;
-		private IndexingWorker _worker;
+        private IndexingWorker _worker;
 
-		private QueuedHandler _webQueue;
-		private IndexingController _web;
-		private Lucene _lucene;
-		private readonly string _indexPath;
+        private QueuedHandler _webQueue;
+        private IndexingController _web;
+        private Lucene _lucene;
+        private readonly string _indexPath;
 
         public Indexing(
-			string indexPath,
+            string indexPath,
             TFChunkDb db, QueuedHandler mainQueue, ISubscriber mainBus, TimerService timerService, ITimeProvider timeProvider,
             IHttpForwarder httpForwarder, HttpService[] httpServices, IPublisher networkSendQueue, RunProjections runProjections)
         {
-		  _indexPath = indexPath;
+          _indexPath = indexPath;
             SetupMessaging(
                 db, mainQueue, mainBus, timerService, timeProvider, httpForwarder, httpServices, networkSendQueue,
                 runProjections);
@@ -104,64 +104,64 @@ namespace EventStore.Projections.Core.Indexing
             TFChunkDb db, QueuedHandler mainQueue, ISubscriber mainBus, TimerService timerService, ITimeProvider timeProvider,
             IHttpForwarder httpForwarder, HttpService[] httpServices, IPublisher networkSendQueue, RunProjections runProjections)
         {
-			var webInput = new InMemoryBus("Indexing web input bus");
-			_webQueue = new QueuedHandler(webInput, "Web queue");
-			_web = new IndexingController(httpForwarder, _webQueue, networkSendQueue);
+            var webInput = new InMemoryBus("Indexing web input bus");
+            _webQueue = new QueuedHandler(webInput, "Web queue");
+            _web = new IndexingController(httpForwarder, _webQueue, networkSendQueue);
             foreach (var httpService in httpServices)
-			{
+            {
                 httpService.SetupController(_web);
-			}
+            }
 
-			// Might not need this level of indirection if we only have one handler
-			var indexInputBus = new InMemoryBus("bus");
-			_indexQueue = new QueuedHandler(indexInputBus, "Indexing Core", groupName: "Indexing Core");
+            // Might not need this level of indirection if we only have one handler
+            var indexInputBus = new InMemoryBus("bus");
+            _indexQueue = new QueuedHandler(indexInputBus, "Indexing Core", groupName: "Indexing Core");
 
-			// Only one worker to process all the things
-			// TODO: Consider disposal
-			_lucene = Lucene.Create(_indexPath);
-			_worker = new IndexingWorker(db, _indexQueue, timeProvider, runProjections, _lucene);
-			_worker.SetupMessaging(indexInputBus);
+            // Only one worker to process all the things
+            // TODO: Consider disposal
+            _lucene = Lucene.Create(_indexPath);
+            _worker = new IndexingWorker(db, _indexQueue, timeProvider, runProjections, _lucene);
+            _worker.SetupMessaging(indexInputBus);
 
-			// Need these for subscriptions
-			var forwarder = new RequestResponseQueueForwarder(inputQueue: _indexQueue, externalRequestQueue: mainQueue);
-			_worker.CoreOutput.Subscribe<ClientMessage.ReadEvent>(forwarder);
-			_worker.CoreOutput.Subscribe<ClientMessage.ReadStreamEventsBackward>(forwarder);
-			_worker.CoreOutput.Subscribe<ClientMessage.ReadStreamEventsForward>(forwarder);
-			_worker.CoreOutput.Subscribe<ClientMessage.ReadAllEventsForward>(forwarder);
-			_worker.CoreOutput.Subscribe<ClientMessage.WriteEvents>(forwarder);
-			_worker.CoreOutput.Subscribe(Forwarder.Create<AwakeReaderServiceMessage.SubscribeAwake>(mainQueue));
-			_worker.CoreOutput.Subscribe(Forwarder.Create<AwakeReaderServiceMessage.UnsubscribeAwake>(mainQueue));
-			// Think something needs this, not sure.
-			_worker.CoreOutput.Subscribe<TimerMessage.Schedule>(timerService);
+            // Need these for subscriptions
+            var forwarder = new RequestResponseQueueForwarder(inputQueue: _indexQueue, externalRequestQueue: mainQueue);
+            _worker.CoreOutput.Subscribe<ClientMessage.ReadEvent>(forwarder);
+            _worker.CoreOutput.Subscribe<ClientMessage.ReadStreamEventsBackward>(forwarder);
+            _worker.CoreOutput.Subscribe<ClientMessage.ReadStreamEventsForward>(forwarder);
+            _worker.CoreOutput.Subscribe<ClientMessage.ReadAllEventsForward>(forwarder);
+            _worker.CoreOutput.Subscribe<ClientMessage.WriteEvents>(forwarder);
+            _worker.CoreOutput.Subscribe(Forwarder.Create<AwakeReaderServiceMessage.SubscribeAwake>(mainQueue));
+            _worker.CoreOutput.Subscribe(Forwarder.Create<AwakeReaderServiceMessage.UnsubscribeAwake>(mainQueue));
+            // Think something needs this, not sure.
+            _worker.CoreOutput.Subscribe<TimerMessage.Schedule>(timerService);
 
-			// Need this one because we wait for system start-up
-			mainBus.Subscribe(Forwarder.Create<SystemMessage.StateChangeMessage>(_indexQueue));
-			
-			// forward all to self
-			_worker.CoreOutput.Subscribe(Forwarder.Create<Message>(_indexQueue)); 
+            // Need this one because we wait for system start-up
+            mainBus.Subscribe(Forwarder.Create<SystemMessage.StateChangeMessage>(_indexQueue));
+            
+            // forward all to self
+            _worker.CoreOutput.Subscribe(Forwarder.Create<Message>(_indexQueue)); 
 
-			webInput.Subscribe<IndexingMessage.QueryRequest>(this);
+            webInput.Subscribe<IndexingMessage.QueryRequest>(this);
 
-			indexInputBus.Subscribe(new UnwrapEnvelopeHandler());
+            indexInputBus.Subscribe(new UnwrapEnvelopeHandler());
         }
 
-		public void Handle(IndexingMessage.QueryRequest request)
-		{
-			var result = _lucene.Query(request.Index, request.Query);
-			// TODO: Handle error codes
-			request.Envelope.ReplyWith(new IndexingMessage.QueryResult(result));
-		}
+        public void Handle(IndexingMessage.QueryRequest request)
+        {
+            var result = _lucene.Query(request.Index, request.Query);
+            // TODO: Handle error codes
+            request.Envelope.ReplyWith(new IndexingMessage.QueryResult(result));
+        }
 
         public void Start()
         {
            _indexQueue.Start();
-			_webQueue.Start();
+            _webQueue.Start();
         }
 
         public void Stop()
         {
-			_webQueue.Stop();
-			_indexQueue.Stop();
+            _webQueue.Stop();
+            _indexQueue.Stop();
         }
     }
 

@@ -45,7 +45,7 @@ using ResolvedEvent = EventStore.ClientAPI.ResolvedEvent;
 
 namespace EventStore.Projections.Core.Tests.ClientAPI
 {
-	[Category("Indexing")]
+    [Category("Indexing")]
     public class specification_with_indexing_runnning : SpecificationWithDirectoryPerTestFixture
     {
         protected MiniNode _node;
@@ -80,7 +80,7 @@ namespace EventStore.Projections.Core.Tests.ClientAPI
         private void CreateNode()
         {
             _projections = new ProjectionsSubsystem(1, runProjections: RunProjections.All);
-			_indexing = new IndexingSystem("", RunProjections.All); // In memory!!
+            _indexing = new IndexingSystem("", RunProjections.All); // In memory!!
             _node = new MiniNode(PathName, inMemDb: true, skipInitializeStandardUsersCheck: false, subsystems: new ISubsystem[] {_projections, _indexing});
             _node.Start();
         }
@@ -122,10 +122,10 @@ namespace EventStore.Projections.Core.Tests.ClientAPI
         {
         }
 
-		protected T[] QueryIndex<T>(string index, string query)
-		{
-			return _manager.QueryIndex<T>(index, query);
-		}
+        protected T[] QueryIndex<T>(string index, string query)
+        {
+            return _manager.QueryIndex<T>(index, query);
+        }
 
         protected void EnableStandardProjections()
         {
