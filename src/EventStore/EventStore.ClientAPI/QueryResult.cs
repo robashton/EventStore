@@ -1,10 +1,10 @@
 // Copyright (c) 2012, Event Store LLP
 // All rights reserved.
-// 
+//  
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
-// 
+//  
 // Redistributions of source code must retain the above copyright notice,
 // this list of conditions and the following disclaimer.
 // Redistributions in binary form must reproduce the above copyright
@@ -24,52 +24,23 @@
 // THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
 
-using NUnit.Framework;
-using System.Linq;
+using System.Net;
+using System.Threading.Tasks;
+using EventStore.ClientAPI.Common.Utils;
+using EventStore.ClientAPI.SystemData;
 
-namespace EventStore.Projections.Core.Tests.Indexing
+namespace EventStore.ClientAPI
 {
-    [TestFixture]
-    public class querying_a_lucene_projection : specification_with_indexing_runnning
-    {
-        protected override void Given()
-        {
-            base.Given();
-            PostProjection(@"
-fromStream('chat-GeneralChat')
-.when({
-  $init: function() {
-	return {}
-  },
-  Message: function(s, e) {
-	createIndexItem(
-	  'ChatMessages',
-	  'chat-' + e.sequenceNumber,
-	  [{ name: 'Sender', value: e.body.Sender }],  e.body )}})"); // Index the whole event
-            PostEvent("chat-GeneralChat", "Message", "{ \"Sender\": \"bob\" }");
-            PostEvent("chat-GeneralChat", "Message", "{ \"Sender\": \"alice\" }");
-            PostEvent("chat-GeneralChat", "Message", "{ \"Sender\": \"craig\" }");
-            WaitIdle();
-        }
+	// TODO: Maybe
+	public class QueryResult
+	{
+		public string Id { get; set; }
+		public string Data { get; set; }
 
-        protected override void When()
-        {
-            base.When();
-            WaitIdle();
-        }
-
-        [Test, Category("Network")]
-        public void can_lookup_by_id()
-        {
-			var expected = QueryIndex<ChatMessage>("ChatMessages", "chat-0").SingleOrDefault();
-			Assert.That(expected.Sender, Is.EqualTo("bob"));
-        }
-
-		class ChatMessage
+		public T As<T>()
 		{
-			public string Sender { get; set; }
+			return Json.ParseJson<T>(this.Data);
 		}
-    }
+	}
 }

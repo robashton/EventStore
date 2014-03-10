@@ -27,7 +27,6 @@
 // 
 
 using NUnit.Framework;
-using System.Linq;
 
 namespace EventStore.Projections.Core.Tests.Indexing
 {
@@ -45,12 +44,14 @@ fromStream('chat-GeneralChat')
   },
   Message: function(s, e) {
 	createIndexItem(
-	  'ChatMessages',
-	  'chat-' + e.sequenceNumber,
-	  [{ name: 'Sender', value: e.body.Sender }],  e.body )}})"); // Index the whole event
-            PostEvent("chat-GeneralChat", "Message", "{ \"Sender\": \"bob\" }");
-            PostEvent("chat-GeneralChat", "Message", "{ \"Sender\": \"alice\" }");
-            PostEvent("chat-GeneralChat", "Message", "{ \"Sender\": \"craig\" }");
+	  'Message', 							    // The index we're writing to 
+	  'chat-' + e.sequenceNumber, 				    // The id of the document we're writing
+	  [{ name: 'sender', value: e.sender }],  
+		e.body
+	  )}})");
+            PostEvent("chat-GeneralChat", "Message", "{ sender: 'bob' }");
+            PostEvent("chat-GeneralChat", "Message", "{ sender: 'alice' }");
+            PostEvent("chat-GeneralChat", "Message", "{ sender: 'craig' }");
             WaitIdle();
         }
 
@@ -63,13 +64,10 @@ fromStream('chat-GeneralChat')
         [Test, Category("Network")]
         public void can_lookup_by_id()
         {
-			var expected = QueryIndex<ChatMessage>("ChatMessages", "chat-0").SingleOrDefault();
-			Assert.That(expected.Sender, Is.EqualTo("bob"));
+			//var item = RawQuery("ChatMessages", "chat-1");
+			//System.Console.WriteLine("Query!!! " + item);
+			DumpStream("$indexing");
+			System.Console.WriteLine("WHAT IS THIS MADNESS?");
         }
-
-		class ChatMessage
-		{
-			public string Sender { get; set; }
-		}
     }
 }

@@ -381,18 +381,18 @@ namespace EventStore.ClientAPI
             return _client.Delete(_httpEndPoint, name, userCredentials);
         }
 
-		// TODO: An actual API, possibly not as a part of projections
-		public Task<string> QueryIndexRawAsync(string index, string query)
+		// TODO: A real API - this is not it.
+		public Task<T[]> QueryIndexAsync<T>(string index, string query)
 		{
             Ensure.NotNullOrEmpty(index, "index");
             Ensure.NotNullOrEmpty(query, "query");
-			return _client.QueryIndexRaw(_httpEndPoint, index, query);
+			var rawResult = _client.QueryIndexRaw(_httpEndPoint, index, query);
+			return rawResult.ContinueWith(t => Json.ParseJson<T[]>(t.Result));
 		}
 
-		// TODO: An actual API, possibly not as a part of projections
-		public string QueryIndexRaw(string index, string query)
+		public T[] QueryIndex<T>(string index, string query)
 		{
-			return QueryIndexRawAsync(index, query).Result;
+			return QueryIndexAsync<T>(index, query).Result;
 		}
     }
 }

@@ -122,9 +122,9 @@ namespace EventStore.Projections.Core.Tests.Indexing
         {
         }
 
-		protected string RawQuery(string index, string query)
+		protected T[] QueryIndex<T>(string index, string query)
 		{
-			return _manager.QueryIndexRaw(index, query);
+			return _manager.QueryIndex<T>(index, query);
 		}
 
         protected void EnableStandardProjections()
@@ -256,7 +256,7 @@ namespace EventStore.Projections.Core.Tests.Indexing
                 "", (a, v) => a + "\r\n" + v.OriginalEvent.EventType + ":" + v.OriginalEvent.DebugMetadataView);
 
 
-            Debug.WriteLine(
+            System.Console.WriteLine(
                 "Stream: '{0}'\r\n{1}\r\n\r\nExisting events: \r\n{2}\r\n \r\nActual metas:{3}", streamId,
                 message, actual, actualMeta);
         }

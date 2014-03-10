@@ -215,22 +215,20 @@ namespace js1
 	  result->num_results = hits->length();
 
 	  Json::Value results(Json::arrayValue);
+	  Json::Reader jsonReader;
 
 	  for(int x = 0; x < hits->length() ; x++)
 	  {
 		  Document &doc = hits->doc(x);
 		  Field* stored_data = doc.getField(L"__data");
-		  Field* id = doc.getField(L"__id");
-
 		  std::wstring data_val_wide = stored_data->stringValue();
-		  std::wstring id_val_wide = id->stringValue();
 		  std::string data_val = lucene_wcstoutf8string(data_val_wide.c_str(), data_val_wide.length());
-		  std::string id_val = lucene_wcstoutf8string(id_val_wide.c_str(), id_val_wide.length());
 
-		  Json::Value jsonDocument;
-		  jsonDocument["id"] = Json::Value(id_val);
-		  jsonDocument["data"] = Json::Value(data_val);
-		  results.append(jsonDocument);
+		  // TODO: Perhaps not to do this here
+		  // We're being given this as a string and perhaps we don't care that it is JSON
+		  Json::Value parsed_body;
+		  jsonReader.parse(data_val, parsed_body);
+		  results.append(parsed_body);
 	  }
 
 	  std::string resultJson = results.toStyledString();

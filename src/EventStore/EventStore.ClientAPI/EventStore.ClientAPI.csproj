@@ -167,6 +167,7 @@
     <Compile Include="Messages\ClusterMessages.cs" />
     <Compile Include="Position.cs" />
     <Compile Include="ProjectionsManager.cs" />
+    <Compile Include="QueryResult.cs" />
     <Compile Include="RecordedEvent.cs" />
     <Compile Include="SliceReadStatus.cs" />
     <Compile Include="StreamPosition.cs" />
