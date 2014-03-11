@@ -108,9 +108,9 @@ namespace EventStore.Projections.Core.Indexing
             }
         }
 
-        public void Flush() 
+        public void Flush(string checkpoint) 
         {
-            Js1.FlushIndexingSystem(_indexingHandle.Value);
+            Js1.FlushIndexingSystem(_indexingHandle.Value, checkpoint);
         }
 
         public void Dispose() 

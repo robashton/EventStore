@@ -194,11 +194,11 @@ extern "C"
     }
 
 
-    JS1_API void STDCALL flush_indexing_system(void* handle)
+    JS1_API void STDCALL flush_indexing_system(void* handle, const char* checkpoint)
     {
         js1::LuceneEngine *engine;
         engine = reinterpret_cast<js1::LuceneEngine *>(handle);
-        engine->flush();
+        engine->flush(checkpoint);
     }
 
     JS1_API void* STDCALL create_query_result(void *handle, const char *index, const char *query)

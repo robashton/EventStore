@@ -160,7 +160,7 @@ namespace EventStore.Projections.Core.Indexing
             {
                 _lucene.Write(@event.ResolvedEvent.EventType, @event.ResolvedEvent.Data);
             }
-            _lucene.Flush();
+            _lucene.Flush(_lastReaderPosition.ToJsonString(default(ProjectionVersion)));
             
             // publish commit point to indexing management stream
             _batch.Clear();

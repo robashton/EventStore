@@ -25,7 +25,7 @@ namespace js1
         void handle(const std::string& cmd, const std::string& body);
         QueryResult* create_query_result(const std::string& index, const std::string& query);
         void free_query_result(QueryResult* result);
-        void flush();
+        void flush(const std::string& checkpoint);
     private:
 
         // Handlers

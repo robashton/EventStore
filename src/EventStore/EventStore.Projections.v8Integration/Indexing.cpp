@@ -218,7 +218,6 @@ namespace js1
       this->log(std::string("Searching for: ") + query);
       QueryResult* result = new QueryResult();
 
-
       result->num_results = hits->length();
 
       this->log(std::string("Got some results"));
@@ -230,6 +229,10 @@ namespace js1
       {
           Document &doc = hits->doc(x);
           Field* stored_data = doc.getField(L"__data");
+
+          // Ignore system docs
+          if(stored_data == NULL) continue;
+
           std::wstring data_val_wide = stored_data->stringValue();
           std::string data_val = lucene_wcstoutf8string(data_val_wide.c_str(), data_val_wide.length());
 
@@ -262,12 +265,17 @@ namespace js1
       delete result;
   }
 
-  void LuceneEngine::flush()
+  void LuceneEngine::flush(const std::string& checkpoint)
   {
        std::map<std::string, IndexWriter*>::iterator iter;
        for (iter = this->writers.begin(); iter != this->writers.end(); iter++) 
        {
-          iter->second->flush();
+            Document checkpointDocument;
+            checkpointDocument.add(*(new Field(L"__id",  L"checkpoint" , Field::Store::STORE_NO | Field::Index::INDEX_UNTOKENIZED)));
+            checkpointDocument.add(*(new Field(L"__value",  utf8_to_wstr(checkpoint).c_str(), Field::Store::STORE_YES | Field::Index::INDEX_NO)));
+            Term deleteTerm(L"__id", L"checkpoint");
+            iter->second->updateDocument(&deleteTerm,  &checkpointDocument);
+            iter->second->flush();
        }
   }
 

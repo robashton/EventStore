@@ -100,7 +100,9 @@ namespace EventStore.Projections.Core.v8
 			string indexing_path, LogDelegate logger);
 		
         [DllImport("js1", EntryPoint = "flush_indexing_system")]
-        public static extern void FlushIndexingSystem(IntPtr handle);
+        public static extern void FlushIndexingSystem(IntPtr handle,
+			[MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef=typeof(UTF8Marshaler))
+			string checkpoint);
 
         [DllImport("js1", EntryPoint = "create_query_result")]
         public static extern IntPtr CreateIndexQueryResult(
