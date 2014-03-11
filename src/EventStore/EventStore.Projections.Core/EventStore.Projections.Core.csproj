@@ -320,6 +320,7 @@
     <Compile Include="Services\ReadWrite.cs" />
     <Compile Include="Services\v8\DefaultV8ProjectionStateHandler.cs" />
     <Compile Include="Services\v8\V8ProjectionStateHandler.cs" />
+    <Compile Include="Standard\IndexPartitioning.cs" />
     <Compile Include="Standard\CategorizeEventsByStreamPath.cs" />
     <Compile Include="Standard\CategorizeStreamByPath.cs" />
     <Compile Include="Standard\IndexEventsByEventType.cs" />

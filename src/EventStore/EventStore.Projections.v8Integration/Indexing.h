@@ -22,7 +22,7 @@ namespace js1
     public:
         LuceneEngine(std::string index_path, LOG_CALLBACK logger);
         ~LuceneEngine();
-        void handle(const std::string& cmd, const std::string& body);
+        void handle(const std::string& ev, const std::string& body);
         QueryResult* create_query_result(const std::string& index, const std::string& query);
         void free_query_result(QueryResult* result);
         void flush(const std::string& checkpoint);

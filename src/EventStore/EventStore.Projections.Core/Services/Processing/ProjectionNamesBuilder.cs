@@ -40,7 +40,7 @@ namespace EventStore.Projections.Core.Services.Processing
             public const string StreamByCategoryStandardProjection = "$stream_by_category";
             public const string EventByCategoryStandardProjection = "$by_category";
             public const string EventByTypeStandardProjection = "$by_event_type";
-            public const string IndexIntoLucene = "$index_into_lucene";
+            public const string IndexPartitioning = "$index-partitioning";
         }
 
         public const string EventType_ProjectionCheckpoint = "$ProjectionCheckpoint";

@@ -234,7 +234,7 @@ function scope($on, $notify) {
     }
 
     function createIndex(indexName) {
-		var eventBody = {  indexName: indexName };
+		var eventBody = {  index_name: indexName };
 		var message = { 
 		  streamId: '$indexing', 
 		  eventName: 'index-creation-requested', 
@@ -244,7 +244,7 @@ function scope($on, $notify) {
     }
 
     function resetIndex(indexName) {
-		var eventBody = {  indexName: indexName };
+		var eventBody = {  index_name: indexName };
 		var message = { 
 		  streamId: '$indexing', 
 		  eventName: 'index-reset-requested', 
