@@ -105,17 +105,21 @@ namespace EventStore.Projections.Core.Standard
             // Get the event type
             string eventType = data.EventType;
             string indexName = "whatever";
+            string positionStreamId;
+
+            var isStreamDeletedEvent = StreamDeletedHelper.IsStreamDeletedEvent(
+                data.PositionStreamId, data.EventType, data.Data, out positionStreamId);
 
             if(IsManagementEvent(eventType))
             {
                 eventsToEmit.Add(new EmittedEventEnvelope(new EmittedDataEvent(
                         "$indexing-$indexes", Guid.NewGuid(), SystemEventTypes.LinkTo, false,
-                        data.EventSequenceNumber + "@" + data.EventStreamId, null,  eventPosition, expectedTag: null)));
+                        data.EventSequenceNumber + "@" + positionStreamId, null,  eventPosition, expectedTag: null)));
             }
 
             eventsToEmit.Add(new EmittedEventEnvelope(new EmittedDataEvent(
                     String.Format("$index-{0}", indexName), Guid.NewGuid(), SystemEventTypes.LinkTo, false,
-                    data.EventSequenceNumber + "@" + data.EventStreamId, null,  eventPosition, expectedTag: null)));
+                    data.EventSequenceNumber + "@" + positionStreamId, null,  eventPosition, expectedTag: null)));
 
             emittedEvents = eventsToEmit.ToArray();
             return true;

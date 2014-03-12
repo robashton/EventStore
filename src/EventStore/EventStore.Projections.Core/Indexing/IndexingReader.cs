@@ -67,6 +67,7 @@ namespace EventStore.Projections.Core.Indexing
         private readonly Lucene _lucene;
         private bool _tickPending;
         private IPublisher _publisher;
+        private string _index;
 
         public IndexingReader(
             IPublisher publisher,
@@ -74,6 +75,7 @@ namespace EventStore.Projections.Core.Indexing
                 <Guid, ReaderSubscriptionManagement.Subscribe,
                 ReaderSubscriptionManagement.ReaderSubscriptionManagementMessage, EventReaderSubscriptionMessage>
                 subscriptionDispatcher, ITimeProvider timeProvider,
+                string index,
                 Lucene lucene)
         {
             if (subscriptionDispatcher == null) throw new ArgumentNullException("subscriptionDispatcher");
@@ -81,17 +83,19 @@ namespace EventStore.Projections.Core.Indexing
             _subscriptionDispatcher = subscriptionDispatcher;
             _timeProvider = timeProvider;
             _lucene = lucene;
-            _logger.Info("Creating a goddamned IndexingReader");
+            _index = index;
+            _logger.Info("Creating a goddamned IndexingReader for {0}", index);
         }
 
         public void Start()
         {
+            var streamName = string.Format("$index-{0}", _index);
             var sourceDefinition = new SourceDefinitionBuilder();
-            sourceDefinition.FromStream("$indexing");
+            sourceDefinition.FromStream(streamName);
             sourceDefinition.AllEvents();
 
             // TODO: Get this from a management stream
-            _fromPosition = CheckpointTag.FromStreamPosition(0, "$indexing", -1);
+            _fromPosition = CheckpointTag.FromStreamPosition(0, streamName, -1);
             var readerStrategy = ReaderStrategy.Create(0, sourceDefinition.Build(), _timeProvider, stopOnEof: true, runAs: SystemAccount.Principal);
             var readerOptions = new ReaderSubscriptionOptions(1024*1024, 1024, stopOnEof: false, stopAfterNEvents: null);
             _subscriptionId =

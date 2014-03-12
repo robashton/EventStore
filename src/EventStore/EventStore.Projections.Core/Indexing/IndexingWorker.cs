@@ -26,6 +26,7 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // 
 
+using System.Collections.Generic;
 using EventStore.Common.Options;
 using EventStore.Core.Bus;
 using EventStore.Common.Log;
@@ -45,7 +46,8 @@ using EventStore.Projections.Core.Services.Processing;
 namespace EventStore.Projections.Core.Indexing
 {
     public class IndexingWorker : IHandle<SystemMessage.StateChangeMessage>,
-                                  IHandle<IndexingMessage.Start>
+                                  IHandle<IndexingMessage.ResetIndex>,
+                                  IHandle<IndexingMessage.AddIndex>
     {
         private readonly ILogger _logger = LogManager.GetLoggerFor<IndexingWorker>();
         private readonly RunProjections _runProjections;
@@ -53,10 +55,11 @@ namespace EventStore.Projections.Core.Indexing
         private readonly EventReaderCoreService _eventReaderCoreService;
         private readonly ReaderSubscriptionDispatcher _subscriptionDispatcher;
         private readonly IODispatcher _ioDispatcher;
-        private IndexingReader _reader;
         private readonly ITimeProvider _timeProvider;
         private readonly Lucene _lucene;
         private bool _started;
+        private Dictionary<string, IndexingReader> _readers = new Dictionary<string, IndexingReader>();
+        private IndexingManager _coordinator;
 
         public IndexingWorker(TFChunkDb db, QueuedHandler inputQueue, ITimeProvider timeProvider, RunProjections runProjections, Lucene lucene)
         {
@@ -72,7 +75,8 @@ namespace EventStore.Projections.Core.Indexing
             _eventReaderCoreService = new EventReaderCoreService(
                 publisher, _ioDispatcher, 10, db.Config.WriterCheckpoint, runHeadingReader: runProjections >= RunProjections.System);
             _lucene = lucene;
-            _reader = new IndexingReader(CoreOutput, _subscriptionDispatcher, _timeProvider, _lucene);
+            _coordinator = new IndexingManager(inputQueue, CoreOutput, _subscriptionDispatcher, _timeProvider);
+            //_reader = new IndexingReader(CoreOutput, _subscriptionDispatcher, _timeProvider, _lucene);
         }
 
         public InMemoryBus CoreOutput
@@ -87,20 +91,34 @@ namespace EventStore.Projections.Core.Indexing
                 _started = true;
                 _logger.Info("Sending start messages");
                 CoreOutput.Publish(new Messages.ReaderCoreServiceMessage.StartReader());
-                CoreOutput.Publish(new IndexingMessage.Start());
+                _coordinator.RetrieveInitialIndexList(OnInitialIndexListLoaded);
             }
         }
 
-        public void Handle(IndexingMessage.Start msg)
+        private void OnInitialIndexListLoaded(string[] indexNames)
         {
-            _logger.Info("Starting indexing system for realsies");
-            _reader.Start();
+            // Add a reader for each index
+            // Start the readers
+            // Flag as started
+        }
+        
+        public void Handle(IndexingMessage.AddIndex msg)
+        {
+            // Add the index
+            // Start it
+        }
+
+        public void Handle(IndexingMessage.ResetIndex msg)
+        {
+            // Find the index
+            // Reset it
         }
 
         public void SetupMessaging(IBus coreInputBus)
         {
             coreInputBus.Subscribe<SystemMessage.StateChangeMessage>(this);
-            coreInputBus.Subscribe<IndexingMessage.Start>(this);
+            coreInputBus.Subscribe<IndexingMessage.AddIndex>(this);
+            coreInputBus.Subscribe<IndexingMessage.ResetIndex>(this);
 
             // NOTE: I don't actually know if all of these are needed, but they seemed like likely suspects
             coreInputBus.Subscribe(_subscriptionDispatcher.CreateSubscriber<EventReaderSubscriptionMessage.CheckpointSuggested>());
@@ -138,7 +156,7 @@ namespace EventStore.Projections.Core.Indexing
             coreInputBus.Subscribe<ReaderSubscriptionMessage.EventReaderPartitionMeasured>(_eventReaderCoreService);
             coreInputBus.Subscribe<ReaderSubscriptionMessage.EventReaderNotAuthorized>(_eventReaderCoreService);
 
-            coreInputBus.Subscribe<IndexingMessage.Tick>(_reader);
+            // coreInputBus.Subscribe<IndexingMessage.Tick>(_reader);
 
             //NOTE: message forwarding is set up outside (for Read/Write events)
         }

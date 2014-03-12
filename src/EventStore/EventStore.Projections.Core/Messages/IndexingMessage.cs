@@ -120,6 +120,48 @@ namespace EventStore.Projections.Core.Messages
             }
         }
 
+        public sealed class AddIndex : Message
+        {
+            private static readonly int TypeId = System.Threading.Interlocked.Increment(ref NextMsgId);
+			private readonly string _indexName;
+
+			public string IndexName
+			{
+				get { return _indexName; }
+			}
+
+            public override int MsgTypeId
+            {
+                get { return TypeId; }
+            }
+
+            public AddIndex(string indexName)
+            {
+                _indexName = indexName;
+            }
+        }
+
+        public sealed class ResetIndex : Message
+        {
+            private static readonly int TypeId = System.Threading.Interlocked.Increment(ref NextMsgId);
+			private readonly string _indexName;
+
+			public string IndexName
+			{
+				get { return _indexName; }
+			}
+
+            public override int MsgTypeId
+            {
+                get { return TypeId; }
+            }
+
+            public ResetIndex(string indexName)
+            {
+                _indexName = indexName;
+            }
+        }
+
         public sealed class NotFound : Message
         {
             private static readonly int TypeId = System.Threading.Interlocked.Increment(ref NextMsgId);

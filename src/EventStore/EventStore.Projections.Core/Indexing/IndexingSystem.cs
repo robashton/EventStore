@@ -131,6 +131,7 @@ namespace EventStore.Projections.Core.Indexing
             _worker.CoreOutput.Subscribe<ClientMessage.WriteEvents>(forwarder);
             _worker.CoreOutput.Subscribe(Forwarder.Create<AwakeReaderServiceMessage.SubscribeAwake>(mainQueue));
             _worker.CoreOutput.Subscribe(Forwarder.Create<AwakeReaderServiceMessage.UnsubscribeAwake>(mainQueue));
+
             // Think something needs this, not sure.
             _worker.CoreOutput.Subscribe<TimerMessage.Schedule>(timerService);
 
