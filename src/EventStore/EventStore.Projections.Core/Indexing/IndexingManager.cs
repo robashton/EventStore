@@ -51,7 +51,6 @@ using ReadStreamResult = EventStore.Core.Data.ReadStreamResult;
 namespace EventStore.Projections.Core.Indexing
 {
     public class IndexingManager : IHandle<ClientMessage.ReadStreamEventsBackwardCompleted>,
-                                   IHandle<ClientMessage.WriteEventsCompleted>,
                                    IHandle<EventReaderSubscriptionMessage.CommittedEventReceived>,
                                    IHandle<EventReaderSubscriptionMessage.EofReached>,
                                    IHandle<EventReaderSubscriptionMessage.PartitionEofReached>,
@@ -67,8 +66,6 @@ namespace EventStore.Projections.Core.Indexing
         private readonly HashSet<string> _indexes = new HashSet<string>();
         private Guid  _subscriptionId;
 
-        private readonly RequestResponseDispatcher<ClientMessage.WriteEvents, ClientMessage.WriteEventsCompleted>
-            _writeDispatcher;
         private readonly RequestResponseDispatcher<ClientMessage.ReadStreamEventsBackward, ClientMessage.ReadStreamEventsBackwardCompleted>
             _readDispatcher;
 
@@ -96,9 +93,6 @@ namespace EventStore.Projections.Core.Indexing
             _timeProvider = timeProvider;
             _logger.Info("Creating a goddamned IndexingManager");
 
-            _writeDispatcher =
-                new RequestResponseDispatcher<ClientMessage.WriteEvents, ClientMessage.WriteEventsCompleted>(
-                    publisher, v => v.CorrelationId, v => v.CorrelationId, new PublishEnvelope(_inputQueue));
             _readDispatcher =
                 new RequestResponseDispatcher
                     <ClientMessage.ReadStreamEventsBackward, ClientMessage.ReadStreamEventsBackwardCompleted>(
@@ -137,11 +131,6 @@ namespace EventStore.Projections.Core.Indexing
         public void Handle(ClientMessage.ReadStreamEventsBackwardCompleted message)
         {
             _readDispatcher.Handle(message);
-        }
-
-        public void Handle(ClientMessage.WriteEventsCompleted message)
-        {
-            _writeDispatcher.Handle(message);
         }
 
         public void Handle(EventReaderSubscriptionMessage.CommittedEventReceived message)
