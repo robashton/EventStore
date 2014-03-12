@@ -41,11 +41,11 @@ using EventStore.Common.Log;
 namespace EventStore.Projections.Core.Indexing
 {
     public class IndexingReader : IHandle<EventReaderSubscriptionMessage.CommittedEventReceived>,
-                              IHandle<EventReaderSubscriptionMessage.EofReached>,
-                              IHandle<EventReaderSubscriptionMessage.PartitionEofReached>,
-                              IHandle<EventReaderSubscriptionMessage.CheckpointSuggested>,
-                              IHandle<EventReaderSubscriptionMessage.NotAuthorized>,
-                              IHandle<IndexingMessage.Tick>
+                                  IHandle<EventReaderSubscriptionMessage.EofReached>,
+                                  IHandle<EventReaderSubscriptionMessage.PartitionEofReached>,
+                                  IHandle<EventReaderSubscriptionMessage.CheckpointSuggested>,
+                                  IHandle<EventReaderSubscriptionMessage.NotAuthorized>,
+                                  IHandle<IndexingMessage.Tick>
     {
         private readonly ILogger _logger = LogManager.GetLoggerFor<IndexingWorker>();
 
@@ -67,43 +67,38 @@ namespace EventStore.Projections.Core.Indexing
         private readonly Lucene _lucene;
         private bool _tickPending;
         private IPublisher _publisher;
-        private string _index;
 
         public IndexingReader(
             IPublisher publisher,
             PublishSubscribeDispatcher
                 <Guid, ReaderSubscriptionManagement.Subscribe,
                 ReaderSubscriptionManagement.ReaderSubscriptionManagementMessage, EventReaderSubscriptionMessage>
-                subscriptionDispatcher, ITimeProvider timeProvider,
-                string index,
-                Lucene lucene)
+                subscriptionDispatcher, ITimeProvider timeProvider, Lucene lucene)
         {
             if (subscriptionDispatcher == null) throw new ArgumentNullException("subscriptionDispatcher");
             _publisher = publisher;
             _subscriptionDispatcher = subscriptionDispatcher;
             _timeProvider = timeProvider;
             _lucene = lucene;
-            _index = index;
-            _logger.Info("Creating a goddamned IndexingReader for {0}", index);
+            _logger.Info("Creating a goddamned IndexingReader");
         }
 
         public void Start()
         {
-            var streamName = string.Format("$index-{0}", _index);
+            var streamName = "$indexing";
             var sourceDefinition = new SourceDefinitionBuilder();
             sourceDefinition.FromStream(streamName);
             sourceDefinition.AllEvents();
 
-            // TODO: Get this from a management stream
-            _fromPosition = CheckpointTag.FromStreamPosition(0, streamName, -1);
+            // TODO: Read this from the index if we can
+            _fromPosition = CheckpointTag.FromStreamPosition(0, streamName, -1); 
             var readerStrategy = ReaderStrategy.Create(0, sourceDefinition.Build(), _timeProvider, stopOnEof: true, runAs: SystemAccount.Principal);
             var readerOptions = new ReaderSubscriptionOptions(1024*1024, 1024, stopOnEof: false, stopAfterNEvents: null);
-            _subscriptionId =
-                _subscriptionDispatcher.PublishSubscribe(
+            _subscriptionId = _subscriptionDispatcher.PublishSubscribe(
                     new ReaderSubscriptionManagement.Subscribe(
                         Guid.NewGuid(), _fromPosition, readerStrategy, readerOptions), this);
-                        _logger.Info("Subscribing for indexing with subscription {0}", _subscriptionId);
-                    }
+            _logger.Info("Subscribing for indexing with subscription {0}", _subscriptionId);
+        }
 
 
         public void EnsureTickPending() 

@@ -60,6 +60,7 @@ namespace EventStore.Projections.Core.Indexing
         private bool _started;
         private Dictionary<string, IndexingReader> _readers = new Dictionary<string, IndexingReader>();
         private IndexingManager _coordinator;
+        private readonly IndexingReader _reader;
 
         public IndexingWorker(TFChunkDb db, QueuedHandler inputQueue, ITimeProvider timeProvider, RunProjections runProjections, Lucene lucene)
         {
@@ -76,7 +77,7 @@ namespace EventStore.Projections.Core.Indexing
                 publisher, _ioDispatcher, 10, db.Config.WriterCheckpoint, runHeadingReader: runProjections >= RunProjections.System);
             _lucene = lucene;
             _coordinator = new IndexingManager(inputQueue, CoreOutput, _subscriptionDispatcher, _timeProvider);
-            //_reader = new IndexingReader(CoreOutput, _subscriptionDispatcher, _timeProvider, _lucene);
+            _reader = new IndexingReader(CoreOutput, _subscriptionDispatcher, _timeProvider, _lucene);
         }
 
         public InMemoryBus CoreOutput
@@ -100,18 +101,21 @@ namespace EventStore.Projections.Core.Indexing
             // Add a reader for each index
             // Start the readers
             // Flag as started
+            _reader.Start();
         }
         
         public void Handle(IndexingMessage.AddIndex msg)
         {
             // Add the index
             // Start it
+            _logger.Info("Adding index {0}", msg.IndexName);
         }
 
         public void Handle(IndexingMessage.ResetIndex msg)
         {
             // Find the index
             // Reset it
+            _logger.Info("Resetting index {0}", msg.IndexName);
         }
 
         public void SetupMessaging(IBus coreInputBus)
@@ -156,7 +160,8 @@ namespace EventStore.Projections.Core.Indexing
             coreInputBus.Subscribe<ReaderSubscriptionMessage.EventReaderPartitionMeasured>(_eventReaderCoreService);
             coreInputBus.Subscribe<ReaderSubscriptionMessage.EventReaderNotAuthorized>(_eventReaderCoreService);
 
-            // coreInputBus.Subscribe<IndexingMessage.Tick>(_reader);
+            coreInputBus.Subscribe<ClientMessage.ReadStreamEventsBackwardCompleted>(_coordinator);
+            coreInputBus.Subscribe<IndexingMessage.Tick>(_reader);
 
             //NOTE: message forwarding is set up outside (for Read/Write events)
         }

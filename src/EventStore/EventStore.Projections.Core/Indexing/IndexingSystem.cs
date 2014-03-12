@@ -114,7 +114,7 @@ namespace EventStore.Projections.Core.Indexing
 
             // Might not need this level of indirection if we only have one handler
             var indexInputBus = new InMemoryBus("bus");
-            _indexQueue = new QueuedHandler(indexInputBus, "Indexing Core", groupName: "Indexing Core");
+            _indexQueue = new QueuedHandler(indexInputBus, "Indexing Core");
 
             // Only one worker to process all the things
             // TODO: Consider disposal

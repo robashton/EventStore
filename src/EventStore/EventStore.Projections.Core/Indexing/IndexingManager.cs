@@ -128,9 +128,7 @@ namespace EventStore.Projections.Core.Indexing
         private void Stop()
         {
             _started = false;
-            this.Unsubscribe();
-
-            // stop listening for changes
+            _subscriptionDispatcher.Cancel(_subscriptionId);
             _writeDispatcher.CancelAll();
             _readDispatcher.CancelAll();
         }
@@ -174,12 +172,6 @@ namespace EventStore.Projections.Core.Indexing
         public void Handle(EventReaderSubscriptionMessage.EofReached message)
         {
             _logger.Error("This should never happen");
-        }
-
-        private void Unsubscribe()
-        {
-            _logger.Info ("Unsubscribing");
-            _subscriptionDispatcher.Cancel(_subscriptionId);
         }
 
         public void RetrieveInitialIndexList(Action<string[]> callback, int from = -1)
