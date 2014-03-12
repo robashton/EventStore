@@ -65,6 +65,7 @@ namespace EventStore.Projections.Core.Indexing
         private readonly IPublisher _publisher;
         private readonly ITimeProvider _timeProvider;
         private readonly HashSet<string> _indexes = new HashSet<string>();
+        private Guid  _subscriptionId;
 
         private readonly RequestResponseDispatcher<ClientMessage.WriteEvents, ClientMessage.WriteEventsCompleted>
             _writeDispatcher;
@@ -107,13 +108,27 @@ namespace EventStore.Projections.Core.Indexing
         public void Start()
         {
             // Start listening for changes
+            var streamName = "$indexing-$indexes";
+            var sourceDefinition = new SourceDefinitionBuilder();
+            sourceDefinition.FromStream(streamName);
+            sourceDefinition.IncludeEvent("$index-creation-requested");
+            sourceDefinition.IncludeEvent("$index-reset-requested");
 
+            CheckpointTag fromPosition = CheckpointTag.FromStreamPosition(0, streamName, _lastEventRead);
+            var readerStrategy = ReaderStrategy.Create(0, sourceDefinition.Build(), _timeProvider, stopOnEof: false, runAs: SystemAccount.Principal);
+            var readerOptions = new ReaderSubscriptionOptions(1024*1024, 1024, stopOnEof: false, stopAfterNEvents: null);
+            _subscriptionId =
+                _subscriptionDispatcher.PublishSubscribe(
+                    new ReaderSubscriptionManagement.Subscribe(
+                        Guid.NewGuid(), fromPosition, readerStrategy, readerOptions), this);
+            _logger.Info("Subscribing for index management with subscription {0}", _subscriptionId);
             _started = true;
         }
 
         private void Stop()
         {
             _started = false;
+            this.Unsubscribe();
 
             // stop listening for changes
             _writeDispatcher.CancelAll();
@@ -133,12 +148,21 @@ namespace EventStore.Projections.Core.Indexing
 
         public void Handle(EventReaderSubscriptionMessage.CommittedEventReceived message)
         {
+            string indexName = IndexNameFromEvent(message.Data.Data);
+            switch(message.Data.EventType)
+            {
+                case "$index-creation-requested":
+                    AddIndex(indexName);
+                    break;
+                case "$index-reset-requested":
+                    ResetIndex(indexName);
+                    break;
+                default:
+                    throw new InvalidOperationException(String.Format("Unexpected event in indexing manager {0}", message.Data.EventType));
+            }
         }
 
-        public void Handle(EventReaderSubscriptionMessage.CheckpointSuggested message)
-        {
-        }
-
+        public void Handle(EventReaderSubscriptionMessage.CheckpointSuggested message) { }
         public void Handle(EventReaderSubscriptionMessage.NotAuthorized message)
         {
             _logger.Error("This should never happen");
@@ -152,6 +176,12 @@ namespace EventStore.Projections.Core.Indexing
             _logger.Error("This should never happen");
         }
 
+        private void Unsubscribe()
+        {
+            _logger.Info ("Unsubscribing");
+            _subscriptionDispatcher.Cancel(_subscriptionId);
+        }
+
         public void RetrieveInitialIndexList(Action<string[]> callback, int from = -1)
         {
             var corrId = Guid.NewGuid();
@@ -162,7 +192,18 @@ namespace EventStore.Projections.Core.Indexing
                 m => LoadIndexListCompleted(m, from, callback));
         }
 
-        private string IndexNameFromEvent(byte[] eventData)
+        private void AddIndex(string indexName)
+        {
+            _indexes.Add(indexName);
+            _publisher.Publish(new IndexingMessage.AddIndex(indexName));
+        }
+
+        private void ResetIndex(string indexName)
+        {
+            _publisher.Publish(new IndexingMessage.ResetIndex(indexName));
+        }
+
+        private string IndexNameFromEvent(string eventData)
         {
             return String.Empty;
         }
@@ -176,7 +217,7 @@ namespace EventStore.Projections.Core.Indexing
                 if (events.IsNotEmpty())
                     foreach (var @event in events)
                     {
-                        var indexName = IndexNameFromEvent(@event.Event.Data);
+                        var indexName = IndexNameFromEvent(Helper.UTF8NoBom.GetString(@event.Event.Data));
                         _indexes.Add(indexName);
                         _lastEventRead = @event.Event.EventNumber;
                     }
