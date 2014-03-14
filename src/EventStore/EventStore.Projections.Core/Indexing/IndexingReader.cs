@@ -44,8 +44,7 @@ namespace EventStore.Projections.Core.Indexing
                                   IHandle<EventReaderSubscriptionMessage.EofReached>,
                                   IHandle<EventReaderSubscriptionMessage.PartitionEofReached>,
                                   IHandle<EventReaderSubscriptionMessage.CheckpointSuggested>,
-                                  IHandle<EventReaderSubscriptionMessage.NotAuthorized>,
-                                  IHandle<IndexingMessage.Tick>
+                                  IHandle<EventReaderSubscriptionMessage.NotAuthorized>
     {
         private readonly ILogger _logger = LogManager.GetLoggerFor<IndexingWorker>();
 
@@ -67,8 +66,10 @@ namespace EventStore.Projections.Core.Indexing
         private readonly Lucene _lucene;
         private bool _tickPending;
         private IPublisher _publisher;
+        private readonly string _indexName;
 
         public IndexingReader(
+            string indexName,
             IPublisher publisher,
             PublishSubscribeDispatcher
                 <Guid, ReaderSubscriptionManagement.Subscribe,
@@ -76,6 +77,7 @@ namespace EventStore.Projections.Core.Indexing
                 subscriptionDispatcher, ITimeProvider timeProvider, Lucene lucene)
         {
             if (subscriptionDispatcher == null) throw new ArgumentNullException("subscriptionDispatcher");
+            _indexName = indexName;
             _publisher = publisher;
             _subscriptionDispatcher = subscriptionDispatcher;
             _timeProvider = timeProvider;
@@ -85,7 +87,7 @@ namespace EventStore.Projections.Core.Indexing
 
         public void Start()
         {
-            var streamName = "$indexing";
+            var streamName = String.Format("$index-{0}", _indexName);
             var sourceDefinition = new SourceDefinitionBuilder();
             sourceDefinition.FromStream(streamName);
             sourceDefinition.AllEvents();
@@ -106,10 +108,10 @@ namespace EventStore.Projections.Core.Indexing
         {
             if(_tickPending) return;
             _tickPending = true;
-            _publisher.Publish(new IndexingMessage.Tick());
+            _publisher.Publish(new IndexingMessage.Tick(Tick));
         }
 
-        public void Handle(IndexingMessage.Tick msg) 
+        private void Tick() 
         {
             _tickPending = false;
             this.Flush();

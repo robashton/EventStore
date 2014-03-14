@@ -97,18 +97,14 @@ namespace EventStore.Projections.Core.Standard
             string partition, CheckpointTag eventPosition, string category1, ResolvedEvent data,
             out string newState, out string newSharedState, out EmittedEventEnvelope[] emittedEvents)
         {
-            Console.WriteLine("EMITTING EVENTS YO {0}", data.EventType);
-
             newSharedState = null;
             emittedEvents = null;
             newState = null;
 
             var eventsToEmit = new List<EmittedEventEnvelope>();
 
-            // Get the index name
-            // Get the event type
             string eventType = data.EventType;
-            string indexName = "whatever";
+            string indexName = data.Data.EventIndexName();
             string positionStreamId;
 
             var isStreamDeletedEvent = StreamDeletedHelper.IsStreamDeletedEvent(

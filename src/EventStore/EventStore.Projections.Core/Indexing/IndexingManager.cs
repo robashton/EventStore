@@ -134,7 +134,7 @@ namespace EventStore.Projections.Core.Indexing
         public void Handle(EventReaderSubscriptionMessage.CommittedEventReceived message)
         {
             _logger.Info("Received event from the boss {0}", message.Data.EventType);
-            string indexName = IndexNameFromEvent(message.Data.Data);
+            string indexName = message.Data.Data.EventIndexName();
             switch(message.Data.EventType)
             {
                 case IndexingEvents.IndexCreationRequested:
@@ -185,11 +185,6 @@ namespace EventStore.Projections.Core.Indexing
             _publisher.Publish(new IndexingMessage.ResetIndex(indexName));
         }
 
-        private string IndexNameFromEvent(string eventData)
-        {
-            return String.Empty;
-        }
-
         private void LoadIndexListCompleted(
             ClientMessage.ReadStreamEventsBackwardCompleted completed, int requestedFrom, Action<string[]> callback)
         {
@@ -199,7 +194,8 @@ namespace EventStore.Projections.Core.Indexing
                 if (events.IsNotEmpty())
                     foreach (var @event in events)
                     {
-                        var indexName = IndexNameFromEvent(Helper.UTF8NoBom.GetString(@event.Event.Data));
+                        var eventData = Helper.UTF8NoBom.GetString(@event.Event.Data);
+                        var indexName = eventData.EventIndexName();
                         _indexes.Add(indexName);
                         _lastEventRead = @event.Event.EventNumber;
                     }

@@ -52,15 +52,21 @@ namespace EventStore.Projections.Core.Messages
         public sealed class Tick : Message
         {
             private static readonly int TypeId = System.Threading.Interlocked.Increment(ref NextMsgId);
+            private readonly Action _action;
 
             public override int MsgTypeId
             {
                 get { return TypeId; }
             }
 
-            public Tick()
+            public Tick(Action action)
             {
+                _action = action;
+            }
 
+            public void Execute()
+            {
+                _action();
             }
         }
 
