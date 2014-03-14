@@ -75,8 +75,8 @@ namespace EventStore.Projections.Core.Indexing
             _ioDispatcher = new IODispatcher(publisher, new PublishEnvelope(inputQueue));
             _eventReaderCoreService = new EventReaderCoreService(
                 publisher, _ioDispatcher, 10, db.Config.WriterCheckpoint, runHeadingReader: runProjections >= RunProjections.System);
-            _lucene = lucene;
             _coordinator = new IndexingManager(inputQueue, CoreOutput, _subscriptionDispatcher, _timeProvider);
+            _lucene = lucene;
         }
 
         public InMemoryBus CoreOutput

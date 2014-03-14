@@ -174,14 +174,12 @@ namespace EventStore.Projections.Core.Indexing
 
         private void AddIndex(string indexName)
         {
-            _logger.Error("About to add index {0}", indexName);
             _indexes.Add(indexName);
             _publisher.Publish(new IndexingMessage.AddIndex(indexName));
         }
 
         private void ResetIndex(string indexName)
         {
-            _logger.Error("About to reset index {0}", indexName);
             _publisher.Publish(new IndexingMessage.ResetIndex(indexName));
         }
 
