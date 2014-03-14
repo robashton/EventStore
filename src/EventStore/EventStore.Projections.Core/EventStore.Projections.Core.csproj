@@ -155,6 +155,7 @@
     <Compile Include="EventReaders\Feeds\FeedReader.cs" />
     <Compile Include="EventReaders\Feeds\FeedReaderService.cs" />
 	<Compile Include="Indexing\IndexingConstants.cs" />
+	<Compile Include="Indexing\LuceneException.cs" />
 	<Compile Include="Indexing\IndexingController.cs" />
 	<Compile Include="Indexing\IndexingExtensions.cs" />
 	<Compile Include="Indexing\Lucene.cs" />
@@ -381,7 +382,7 @@
     </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
   </Target>

@@ -1,10 +1,9 @@
-// Copyright (c) 2012, Event Store LLP
-// All rights reserved.
-// 
+// Copyright (c) 2012, Event Store LLP // All rights reserved.
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
-// 
+//
 // Redistributions of source code must retain the above copyright notice,
 // this list of conditions and the following disclaimer.
 // Redistributions in binary form must reproduce the above copyright
@@ -24,7 +23,7 @@
 // THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 
 using EventStore.Projections.Core.Messages;
 using EventStore.Projections.Core.Services;
@@ -57,14 +56,16 @@ namespace EventStore.Projections.Core.Indexing
             _logger.Info("Message from native lucene: {0}", message);
         }
 
-        private Lucene(string indexPath) 
+        private Lucene(string indexPath)
         {
             _indexPath = indexPath;
         }
 
         private void Initialize()
         {
-            _indexingHandle = Js1.OpenIndexingSystem(_indexPath, NativeLogHandler);
+            int lastStatus = 0;
+            _indexingHandle = Js1.OpenIndexingSystem(_indexPath, NativeLogHandler, ref lastStatus);
+            CheckForError(lastStatus);
         }
 
         public static Lucene Create(string indexPath)
@@ -74,7 +75,7 @@ namespace EventStore.Projections.Core.Indexing
             {
                 lucene.Initialize();
             }
-            catch(Exception ex) 
+            catch(Exception ex)
             {
                 lucene.Dispose();
                 throw ex;
@@ -84,18 +85,22 @@ namespace EventStore.Projections.Core.Indexing
 
         public void Write(string ev, string data)
         {
-            Js1.HandleIndexCommand(_indexingHandle.Value, ev, data);
+            int lastStatus = 0;
+            Js1.HandleIndexCommand(_indexingHandle.Value, ev, data, ref lastStatus);
+            CheckForError(lastStatus);
         }
 
-        public string Query(string index, string query) 
+        public string Query(string index, string query)
         {
             IntPtr? result = null;
             NativeQueryResult unpackedResult;
             Byte[] unpackedJson;
+            int lastStatus = 0;
 
             try
             {
-                result = Js1.CreateIndexQueryResult(_indexingHandle.Value, index, query);
+                result = Js1.CreateIndexQueryResult(_indexingHandle.Value, index, query, ref lastStatus);
+                CheckForError(lastStatus);
                 unpackedResult = (NativeQueryResult)Marshal.PtrToStructure(result.Value, typeof(NativeQueryResult));
                 unpackedJson = new Byte[unpackedResult.num_bytes];
                 Marshal.Copy(unpackedResult.json, unpackedJson, 0, unpackedResult.num_bytes);
@@ -103,22 +108,49 @@ namespace EventStore.Projections.Core.Indexing
             }
             finally
             {
-                if(result != null)
-                  Js1.FreeIndexQueryResult(_indexingHandle.Value, result.Value);
+                if(result != null) {
+                  Js1.FreeIndexQueryResult(_indexingHandle.Value, result.Value, ref lastStatus);
+                  CheckForError(lastStatus);
+                }
+
             }
         }
 
-        public void Flush(string checkpoint) 
+        public void Flush(string checkpoint)
         {
-            Js1.FlushIndexingSystem(_indexingHandle.Value, checkpoint);
+            int lastStatus = 0;
+            Js1.FlushIndexingSystem(_indexingHandle.Value, checkpoint, ref lastStatus);
+            CheckForError(lastStatus);
         }
 
-        public void Dispose() 
+        public void Dispose()
         {
-            if(_indexingHandle != null) 
+            int lastStatus = 0;
+            if(_indexingHandle != null)
             {
-                Js1.CloseIndexingSystem(_indexingHandle.Value);
+                Js1.CloseIndexingSystem(_indexingHandle.Value, ref lastStatus);
+                CheckForError(lastStatus);
                 _indexingHandle = null;
+            }
+        }
+
+        private void CheckForError(int status)
+        {
+//            enum Codes { NO_INDEX = 1, INDEX_ALREADY_EXISTS = 2 , LUCENE_ERROR = 3 };
+            switch(status)
+            {
+                case 0:
+                    return;
+                case 1:
+                    throw new LuceneException("No index with this name exists");
+                    break;
+                case 2:
+                    throw new LuceneException("Index already exists");
+                    break;
+                case 3:
+                    throw new LuceneException("Lucene threw an error, I don't know why");
+                    break;
+
             }
         }
     }

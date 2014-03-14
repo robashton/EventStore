@@ -1,10 +1,10 @@
 ﻿// Copyright (c) 2012, Event Store LLP
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
-// 
+//
 // Redistributions of source code must retain the above copyright notice,
 // this list of conditions and the following disclaimer.
 // Redistributions in binary form must reproduce the above copyright
@@ -24,7 +24,7 @@
 // THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 using System;
 using System.Runtime.InteropServices;
 using EventStore.Projections.Core.Utils;
@@ -97,34 +97,38 @@ namespace EventStore.Projections.Core.v8
         [DllImport("js1", EntryPoint = "open_indexing_system")]
         public static extern IntPtr OpenIndexingSystem(
 			[MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef=typeof(UTF8Marshaler))
-			string indexing_path, LogDelegate logger);
-		
+			string indexing_path, LogDelegate logger,
+            ref int status);
+
         [DllImport("js1", EntryPoint = "flush_indexing_system")]
         public static extern void FlushIndexingSystem(IntPtr handle,
 			[MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef=typeof(UTF8Marshaler))
-			string checkpoint);
+			string checkpoint,
+            ref int status);
 
         [DllImport("js1", EntryPoint = "create_query_result")]
         public static extern IntPtr CreateIndexQueryResult(
 			IntPtr handle,
 			[MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef=typeof(UTF8Marshaler))
-			string index, 
+			string index,
 			[MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef=typeof(UTF8Marshaler))
-			string query);
+			string query,
+            ref int status);
 
         [DllImport("js1", EntryPoint = "free_query_result")]
-        public static extern void FreeIndexQueryResult(IntPtr handle, IntPtr result);
+        public static extern void FreeIndexQueryResult(IntPtr handle, IntPtr result, ref int status);
 
         [DllImport("js1", EntryPoint = "handle_indexing_command")]
         public static extern void HandleIndexCommand(
 			IntPtr handle,
 			[MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef=typeof(UTF8Marshaler))]
-            string command, 
+            string command,
             [MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef=typeof(UTF8Marshaler))]
-			string body);
+			string body,
+            ref int status);
 
         [DllImport("js1", EntryPoint = "close_indexing_system")]
-        public static extern void CloseIndexingSystem(IntPtr handle);
+        public static extern void CloseIndexingSystem(IntPtr handle, ref int status);
 
     }
 }

@@ -1,26 +1,16 @@
-Thread safety of indexwriter means more than one writer
-  - Determinism when more than one projection writes to an index?
-  - When do I open the writer?
-  - When do I close the writer?
-  - Flushing can be made deterministic, but we don't necessarily know what is written if we're using this functionality (if we get uncleanly shut down)
-    - Answer: Subsribe to a stream, checkpoint on commit, success.
-      - Can use a projection for this, seems legit
-      - Have to question the sanity of going back into native land from .NET though
-      - What are the benefits of writing the indexing system in C++?
-        - Older version of Lucene isn't an advantage
-        - Do we gain performance - probably not
-        - Are we just trying to avoid writing piles more C#? (That's a fine justification)
+Halp
 
-Performance
-  - Currently flushing every event write
-	- Not optimal
-	- It's assumed that each event is processed atomically though
-	- We can work around this if we don't use a C# projection and manage our own checkpointing
+ - Thread safety of opening new readers on change
 
-What am I indexing?
-  - Leave it up to the user?
-  - They can store metadata against the document
-  - Index either the event itself, or a projection created by the stream
+
+ - Throw an error if we try writing to an index we haven't created
+ - Throw a sensible error if we try reading from an index that we don't know about
+ - Perform flushing per index properly via the API
+ - Read checkpoint on start-up of each reader
+ - Open all writers/readers/indexes on start-up (well, writers anyway)
+
+ - We shouldn't allow projections to write to indexes they don't own
+    - Consider storing projection name in the index as a system doc
 
 Building Clucene
   - Cmake as a dependency - Windows - Cygwin? Really????

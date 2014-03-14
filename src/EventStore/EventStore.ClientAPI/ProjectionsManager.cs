@@ -1,10 +1,10 @@
 ﻿// Copyright (c) 2012, Event Store LLP
 // All rights reserved.
-//  
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
-//  
+//
 // Redistributions of source code must retain the above copyright notice,
 // this list of conditions and the following disclaimer.
 // Redistributions in binary form must reproduce the above copyright
@@ -26,6 +26,7 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using System.Net;
+using System.Linq;
 using System.Threading.Tasks;
 using EventStore.ClientAPI.Common.Utils;
 using EventStore.ClientAPI.SystemData;
@@ -67,7 +68,7 @@ namespace EventStore.ClientAPI
         }
 
         /// <summary>
-        /// Asynchronously enables a projection 
+        /// Asynchronously enables a projection
         /// </summary>
         /// <param name="name">The name of the projection.</param>
         /// <param name="userCredentials">Credentials for a user with permission to enable a projection</param>
@@ -359,7 +360,7 @@ namespace EventStore.ClientAPI
         }
 
         /// <summary>
-        /// Synchronously deletes a projection 
+        /// Synchronously deletes a projection
         /// </summary>
         /// <param name="name">The name of the projection.</param>
         /// <param name="userCredentials">Credentials for a user with permission to delete a projection</param>
@@ -370,7 +371,7 @@ namespace EventStore.ClientAPI
         }
 
         /// <summary>
-        /// Asynchronously deletes a projection 
+        /// Asynchronously deletes a projection
         /// </summary>
         /// <param name="name">The name of the projection.</param>
         /// <param name="userCredentials">Credentials for a user with permission to delete a projection</param>
@@ -387,8 +388,14 @@ namespace EventStore.ClientAPI
             Ensure.NotNullOrEmpty(index, "index");
             Ensure.NotNullOrEmpty(query, "query");
 			var rawResult = _client.QueryIndexRaw(_httpEndPoint, index, query);
-			return rawResult.ContinueWith(t => Json.ParseJson<T[]>(t.Result));
+			return rawResult.ContinueWith(t => ParseRawResults<T>(t.Result));
 		}
+
+        private T[] ParseRawResults<T>(string raw)
+        {
+            var rawresults = Json.ParseJson<string[]>(raw);
+            return rawresults.Select(x=> Json.ParseJson<T>(x)).ToArray();
+        }
 
 		public T[] QueryIndex<T>(string index, string query)
 		{

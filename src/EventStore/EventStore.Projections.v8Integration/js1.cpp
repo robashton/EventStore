@@ -11,7 +11,7 @@
 
 #include <iostream>
 
-extern "C" 
+extern "C"
 {
     JS1_API int js1_api_version()
     {
@@ -51,7 +51,7 @@ extern "C"
         return NULL;
     };
 
-    JS1_API void * STDCALL compile_prelude(const uint16_t *prelude, const uint16_t *file_name, LOAD_MODULE_CALLBACK load_module_callback, 
+    JS1_API void * STDCALL compile_prelude(const uint16_t *prelude, const uint16_t *file_name, LOAD_MODULE_CALLBACK load_module_callback,
         ENTER_CANCELLABLE_REGION enter_calcellable_region_callback, EXIT_CANCELLABLE_REGION exit_cancellable_region_callback, LOG_CALLBACK log_callback)
     {
         js1::PreludeScript *prelude_script;
@@ -72,7 +72,7 @@ extern "C"
     };
 
     JS1_API void * STDCALL compile_query(
-        void *prelude, 
+        void *prelude,
         const uint16_t *script,
         const uint16_t *file_name,
         REGISTER_COMMAND_HANDLER_CALLBACK register_command_handler_callback,
@@ -109,13 +109,13 @@ extern "C"
         delete compiled_script;
     };
 
-    JS1_API bool STDCALL execute_command_handler(void *script_handle, void* event_handler_handle, const uint16_t *data_json, 
+    JS1_API bool STDCALL execute_command_handler(void *script_handle, void* event_handler_handle, const uint16_t *data_json,
         const uint16_t *data_other[], int32_t other_length, uint16_t **result_json, uint16_t **result2_json, void **memory_handle)
     {
 
         js1::QueryScript *query_script;
         //TODO: add v8::try_catch here (and move scope/context to this level) and make errors reportable to theC# level
-        
+
         query_script = reinterpret_cast<js1::QueryScript *>(script_handle);
         js1::PreludeScope prelude_scope(query_script);
 
@@ -132,7 +132,7 @@ extern "C"
             return false;
         }
         //NOTE: incorrect return types are handled in execute_handler
-        if (!result.IsEmpty()) 
+        if (!result.IsEmpty())
         {
             v8::String::Value * result_buffer = new v8::String::Value(result);
             v8::String::Value * result2_buffer = new v8::String::Value(result2);
@@ -145,7 +145,7 @@ extern "C"
             handles[1] = result2_buffer;
             *memory_handle = handles;
         }
-        else 
+        else
         {
             *result_json = NULL;
             *memory_handle = NULL;
@@ -160,10 +160,10 @@ extern "C"
 
         void **memory_handles = (void**)result;
 
-        v8::String::Value * result_buffer = reinterpret_cast<v8::String::Value *>(memory_handles[0]);       
+        v8::String::Value * result_buffer = reinterpret_cast<v8::String::Value *>(memory_handles[0]);
         delete result_buffer;
 
-        v8::String::Value * result2_buffer = reinterpret_cast<v8::String::Value *>(memory_handles[1]);      
+        v8::String::Value * result2_buffer = reinterpret_cast<v8::String::Value *>(memory_handles[1]);
         if (result2_buffer)
             delete result2_buffer;
 
@@ -179,7 +179,7 @@ extern "C"
     };
 
     //TODO: revise error reporting completely (we are loosing error messages from the load_module this way)
-    JS1_API void report_errors(void *script_handle, REPORT_ERROR_CALLBACK report_error_callback) 
+    JS1_API void report_errors(void *script_handle, REPORT_ERROR_CALLBACK report_error_callback)
     {
         js1::QueryScript *query_script;
         query_script = reinterpret_cast<js1::QueryScript *>(script_handle);
@@ -188,28 +188,32 @@ extern "C"
         query_script->report_errors(report_error_callback);
     }
 
-    JS1_API void* STDCALL open_indexing_system(const char* index_path, LOG_CALLBACK logger)
+    JS1_API void* STDCALL open_indexing_system(const char* index_path, LOG_CALLBACK logger, int* status)
     {
+        *status = 0;
         return new js1::LuceneEngine(index_path, logger);
     }
 
 
-    JS1_API void STDCALL flush_indexing_system(void* handle, const char* checkpoint)
+    JS1_API void STDCALL flush_indexing_system(void* handle, const char* checkpoint, int* status)
     {
+        *status = 0;
         js1::LuceneEngine *engine;
         engine = reinterpret_cast<js1::LuceneEngine *>(handle);
         engine->flush(checkpoint);
     }
 
-    JS1_API void* STDCALL create_query_result(void *handle, const char *index, const char *query)
+    JS1_API void* STDCALL create_query_result(void *handle, const char *index, const char *query, int* status)
     {
+        *status = 0;
         js1::LuceneEngine *engine;
         engine = reinterpret_cast<js1::LuceneEngine *>(handle);
         return engine->create_query_result(index, query);
     }
 
-    JS1_API void STDCALL free_query_result(void* handle, void* result)
+    JS1_API void STDCALL free_query_result(void* handle, void* result, int* status)
     {
+        *status = 0;
         js1::LuceneEngine *engine;
         js1::QueryResult *queryResult;
         engine = reinterpret_cast<js1::LuceneEngine *>(handle);
@@ -218,15 +222,28 @@ extern "C"
         return engine->free_query_result(queryResult);
     }
 
-    JS1_API void STDCALL handle_indexing_command(void* handle, const char *cmd, const char *body) 
+    JS1_API void STDCALL handle_indexing_command(void* handle, const char *cmd, const char *body, int* status)
     {
+        *status = 0;
         js1::LuceneEngine *engine;
         engine = reinterpret_cast<js1::LuceneEngine *>(handle);
-        engine->handle(cmd, body);
+        try
+        {
+            engine->handle(cmd, body);
+        }
+        catch(js1::LuceneException& e)
+        {
+            *status = e.Code();
+        }
+        catch(CLuceneError& err)
+        {
+            *status = js1::LuceneException::Codes::LUCENE_ERROR;
+        }
     }
 
-    JS1_API void STDCALL close_indexing_system(void* handle) 
+    JS1_API void STDCALL close_indexing_system(void* handle, int* status)
     {
+        *status = 0;
         js1::LuceneEngine *engine;
         engine = reinterpret_cast<js1::LuceneEngine *>(handle);
         delete engine;

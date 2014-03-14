@@ -1,10 +1,9 @@
 // Copyright (c) 2012, Event Store LLP
 // All rights reserved.
-// 
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
-// 
+//
 // Redistributions of source code must retain the above copyright notice,
 // this list of conditions and the following disclaimer.
 // Redistributions in binary form must reproduce the above copyright
@@ -24,7 +23,7 @@
 // THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 
 using System;
 using System.Collections.Generic;
@@ -84,7 +83,7 @@ namespace EventStore.Projections.Core.Indexing
             PublishSubscribeDispatcher
                 <Guid, ReaderSubscriptionManagement.Subscribe,
                 ReaderSubscriptionManagement.ReaderSubscriptionManagementMessage, EventReaderSubscriptionMessage>
-                subscriptionDispatcher, 
+                subscriptionDispatcher,
                 ITimeProvider timeProvider)
         {
             _inputQueue = inputQueue;
@@ -168,7 +167,7 @@ namespace EventStore.Projections.Core.Indexing
             _readDispatcher.Publish(
                 new ClientMessage.ReadStreamEventsBackward(
                     corrId, corrId, _readDispatcher.Envelope, "$indexing-$indexes", from, _readEventsBatchSize,
-                    resolveLinkTos: true, requireMaster: false, validationStreamVersion: null, user: SystemAccount.Principal), 
+                    resolveLinkTos: true, requireMaster: false, validationStreamVersion: null, user: SystemAccount.Principal),
                 m => LoadIndexListCompleted(m, from, callback));
         }
 
