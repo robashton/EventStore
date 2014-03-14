@@ -91,6 +91,7 @@ namespace EventStore.Projections.Core.Indexing
             sourceDefinition.AllEvents();
 
             // TODO: Read this from the index if we can
+            // We can read this from the index now we're fls
             _fromPosition = CheckpointTag.FromStreamPosition(0, streamName, -1); 
             var readerStrategy = ReaderStrategy.Create(0, sourceDefinition.Build(), _timeProvider, stopOnEof: true, runAs: SystemAccount.Principal);
             var readerOptions = new ReaderSubscriptionOptions(1024*1024, 1024, stopOnEof: false, stopAfterNEvents: null);

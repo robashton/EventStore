@@ -101,6 +101,7 @@ namespace EventStore.Projections.Core.Indexing
             // Add a reader for each index
             // Start the readers
             // Flag as started
+            _coordinator.Start();
             _reader.Start();
         }
         

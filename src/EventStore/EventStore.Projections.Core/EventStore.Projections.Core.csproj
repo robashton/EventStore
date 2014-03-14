@@ -154,6 +154,7 @@
   <ItemGroup>
     <Compile Include="EventReaders\Feeds\FeedReader.cs" />
     <Compile Include="EventReaders\Feeds\FeedReaderService.cs" />
+	<Compile Include="Indexing\IndexingConstants.cs" />
 	<Compile Include="Indexing\IndexingController.cs" />
 	<Compile Include="Indexing\Lucene.cs" />
 	<Compile Include="Indexing\IndexingReader.cs" />

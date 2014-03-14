@@ -40,8 +40,8 @@ namespace EventStore.Projections.Core.Tests.ClientAPI.Indexing
             PostProjection(@"
 fromStream('chat-GeneralChat')
 .when({
-  $init: function() {
-    return {}
+  $created: function() {
+    createIndex('ChatMessages');
   },
   Message: function(s, e) {
     createIndexItem(

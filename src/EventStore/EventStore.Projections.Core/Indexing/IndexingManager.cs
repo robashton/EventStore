@@ -105,8 +105,8 @@ namespace EventStore.Projections.Core.Indexing
             var streamName = "$indexing-$indexes";
             var sourceDefinition = new SourceDefinitionBuilder();
             sourceDefinition.FromStream(streamName);
-            sourceDefinition.IncludeEvent("$index-creation-requested");
-            sourceDefinition.IncludeEvent("$index-reset-requested");
+            sourceDefinition.IncludeEvent(IndexingEvents.IndexCreationRequested);
+            sourceDefinition.IncludeEvent(IndexingEvents.IndexResetRequested);
 
             CheckpointTag fromPosition = CheckpointTag.FromStreamPosition(0, streamName, _lastEventRead);
             var readerStrategy = ReaderStrategy.Create(0, sourceDefinition.Build(), _timeProvider, stopOnEof: false, runAs: SystemAccount.Principal);
@@ -123,10 +123,8 @@ namespace EventStore.Projections.Core.Indexing
         {
             _started = false;
             _subscriptionDispatcher.Cancel(_subscriptionId);
-            _writeDispatcher.CancelAll();
             _readDispatcher.CancelAll();
         }
-
 
         public void Handle(ClientMessage.ReadStreamEventsBackwardCompleted message)
         {
@@ -135,13 +133,14 @@ namespace EventStore.Projections.Core.Indexing
 
         public void Handle(EventReaderSubscriptionMessage.CommittedEventReceived message)
         {
+            _logger.Info("Received event from the boss {0}", message.Data.EventType);
             string indexName = IndexNameFromEvent(message.Data.Data);
             switch(message.Data.EventType)
             {
-                case "$index-creation-requested":
+                case IndexingEvents.IndexCreationRequested:
                     AddIndex(indexName);
                     break;
-                case "$index-reset-requested":
+                case IndexingEvents.IndexResetRequested:
                     ResetIndex(indexName);
                     break;
                 default:
@@ -175,12 +174,14 @@ namespace EventStore.Projections.Core.Indexing
 
         private void AddIndex(string indexName)
         {
+            _logger.Error("About to add index {0}", indexName);
             _indexes.Add(indexName);
             _publisher.Publish(new IndexingMessage.AddIndex(indexName));
         }
 
         private void ResetIndex(string indexName)
         {
+            _logger.Error("About to reset index {0}", indexName);
             _publisher.Publish(new IndexingMessage.ResetIndex(indexName));
         }
 
@@ -194,7 +195,7 @@ namespace EventStore.Projections.Core.Indexing
         {
             if (completed.Result == ReadStreamResult.Success)
             {
-                var events = completed.Events.Where(e => e.Event.EventType == "$index-creation-requested").ToArray();
+                var events = completed.Events.Where(e => e.Event.EventType == IndexingEvents.IndexCreationRequested).ToArray();
                 if (events.IsNotEmpty())
                     foreach (var @event in events)
                     {

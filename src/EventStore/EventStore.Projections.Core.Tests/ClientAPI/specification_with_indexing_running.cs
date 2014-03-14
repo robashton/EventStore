@@ -133,6 +133,7 @@ namespace EventStore.Projections.Core.Tests.ClientAPI
             EnableProjection(ProjectionNamesBuilder.StandardProjections.EventByTypeStandardProjection);
             EnableProjection(ProjectionNamesBuilder.StandardProjections.StreamByCategoryStandardProjection);
             EnableProjection(ProjectionNamesBuilder.StandardProjections.StreamsStandardProjection);
+            EnableProjection(ProjectionNamesBuilder.StandardProjections.IndexPartitioning);
         }
 
         protected void DisableStandardProjections()
@@ -141,6 +142,7 @@ namespace EventStore.Projections.Core.Tests.ClientAPI
             DisableProjection(ProjectionNamesBuilder.StandardProjections.EventByTypeStandardProjection);
             DisableProjection(ProjectionNamesBuilder.StandardProjections.StreamByCategoryStandardProjection);
             DisableProjection(ProjectionNamesBuilder.StandardProjections.StreamsStandardProjection);
+            DisableProjection(ProjectionNamesBuilder.StandardProjections.IndexPartitioning);
         }
 
         protected virtual bool GivenStandardProjectionsRunning()
