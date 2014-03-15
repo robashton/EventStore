@@ -3,14 +3,13 @@ Halp
  - Thread safety of opening new readers on change
 
 
- - Throw an error if we try writing to an index we haven't created
- - Throw a sensible error if we try reading from an index that we don't know about
  - Perform flushing per index properly via the API
  - Read checkpoint on start-up of each reader
  - Open all writers/readers/indexes on start-up (well, writers anyway)
 
  - We shouldn't allow projections to write to indexes they don't own
     - Consider storing projection name in the index as a system doc
+    - Consider validating whether an index exists ahead of time so we can fault projection
 
 Building Clucene
   - Cmake as a dependency - Windows - Cygwin? Really????
