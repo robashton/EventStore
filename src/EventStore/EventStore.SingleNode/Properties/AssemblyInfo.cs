@@ -43,3 +43,5 @@ using System.Runtime.InteropServices;
 
 [assembly: ComVisible(false)]
 [assembly: Guid("c22971e1-fb66-4ee8-8e8b-7ff86e43e864")]
+ 
+[assembly: AssemblyInformationalVersion("0.0.0.0.projection-extension@96cd840ef96cb21d7bf7774bf67764709db4d4fc@Sat, 15 Mar 2014 11:22:58 +0000")]

@@ -48,4 +48,5 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 [assembly: Guid("52743679-baf4-4fdc-8bcb-f291980dccb1")]
 
-[assembly: InternalsVisibleTo("EventStore.Core.Tests")]
+[assembly: InternalsVisibleTo("EventStore.Core.Tests")] 
+[assembly: AssemblyInformationalVersion("0.0.0.0.projection-extension@96cd840ef96cb21d7bf7774bf67764709db4d4fc@Sat, 15 Mar 2014 11:22:58 +0000")]
