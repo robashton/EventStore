@@ -2,7 +2,6 @@ Halp
 
  - Thread safety of opening new readers on change
 
-
  - Perform flushing per index properly via the API
  - Read checkpoint on start-up of each reader
  - Open all writers/readers/indexes on start-up (well, writers anyway)
@@ -10,6 +9,9 @@ Halp
  - We shouldn't allow projections to write to indexes they don't own
     - Consider storing projection name in the index as a system doc
     - Consider validating whether an index exists ahead of time so we can fault projection
+    - withIndex("Foo") sets a variable
+
+- Allow configurable max timeout/etc
 
 Building Clucene
   - Cmake as a dependency - Windows - Cygwin? Really????

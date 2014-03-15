@@ -1,10 +1,10 @@
 // Copyright (c) 2012, Event Store LLP
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
-// 
+//
 // Redistributions of source code must retain the above copyright notice,
 // this list of conditions and the following disclaimer.
 // Redistributions in binary form must reproduce the above copyright
@@ -24,9 +24,10 @@
 // THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 
 using System.Collections.Generic;
+using System;
 using System.Linq;
 using EventStore.Common.Options;
 using EventStore.Core;
@@ -45,13 +46,13 @@ using EventStore.Projections.Core.Services.Processing;
 
 namespace EventStore.Projections.Core.Indexing
 {
-    public class IndexingSystem : ISubsystem 
+    public class IndexingSystem : ISubsystem
     {
         private EventStore.Projections.Core.Indexing.Indexing _indexing;
         private readonly RunProjections _runProjections;
         private readonly string _indexPath;
 
-        public IndexingSystem(string indexPath, RunProjections runProjections) 
+        public IndexingSystem(string indexPath, RunProjections runProjections)
         {
             _runProjections = runProjections;
             _indexPath = indexPath;
@@ -137,9 +138,9 @@ namespace EventStore.Projections.Core.Indexing
 
             // Need this one because we wait for system start-up
             mainBus.Subscribe(Forwarder.Create<SystemMessage.StateChangeMessage>(_indexQueue));
-            
+
             // forward all to self
-            _worker.CoreOutput.Subscribe(Forwarder.Create<Message>(_indexQueue)); 
+            _worker.CoreOutput.Subscribe(Forwarder.Create<Message>(_indexQueue));
 
             webInput.Subscribe<IndexingMessage.QueryRequest>(this);
 
@@ -148,9 +149,17 @@ namespace EventStore.Projections.Core.Indexing
 
         public void Handle(IndexingMessage.QueryRequest request)
         {
-            var result = _lucene.Query(request.Index, request.Query);
-            // TODO: Handle error codes
-            request.Envelope.ReplyWith(new IndexingMessage.QueryResult(result));
+            IndexingMessage.QueryResult result = null;
+
+            try
+            {
+              result = new IndexingMessage.QueryResult(_lucene.Query(request.Index, request.Query));
+            }
+            catch(Exception e)
+            {
+              result = new IndexingMessage.QueryResult(e);
+            }
+            request.Envelope.ReplyWith(result);
         }
 
         public void Start()
