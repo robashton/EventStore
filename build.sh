@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 
 BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 V8_REVISION="18454" #Tag 3.24.10
