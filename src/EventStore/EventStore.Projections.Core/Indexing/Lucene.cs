@@ -108,7 +108,8 @@ namespace EventStore.Projections.Core.Indexing
             }
             finally
             {
-                if(result != null) {
+                if(result != null && result != IntPtr.Zero)
+                {
                   Js1.FreeIndexQueryResult(_indexingHandle.Value, result.Value, ref lastStatus);
                   CheckForError(lastStatus);
                 }

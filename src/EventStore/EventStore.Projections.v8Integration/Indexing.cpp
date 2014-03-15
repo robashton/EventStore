@@ -164,9 +164,6 @@ namespace js1
 
             std::string name = current["name"].asString();
             std::string value = current["value"].asString();
-            std::string msg = name + value;
-
-            this->log(msg);
 
             std::wstring wname = utf8_to_wstr(name);
             std::wstring wvalue = utf8_to_wstr(value);

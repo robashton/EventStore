@@ -200,7 +200,18 @@ extern "C"
         *status = 0;
         js1::LuceneEngine *engine;
         engine = reinterpret_cast<js1::LuceneEngine *>(handle);
-        engine->flush(checkpoint);
+        try
+        {
+            engine->flush(checkpoint);
+        }
+        catch(js1::LuceneException& e)
+        {
+            *status = e.Code();
+        }
+        catch(CLuceneError& err)
+        {
+            *status = js1::LuceneException::Codes::LUCENE_ERROR;
+        }
     }
 
     JS1_API void* STDCALL create_query_result(void *handle, const char *index, const char *query, int* status)
@@ -208,7 +219,21 @@ extern "C"
         *status = 0;
         js1::LuceneEngine *engine;
         engine = reinterpret_cast<js1::LuceneEngine *>(handle);
-        return engine->create_query_result(index, query);
+        void* result = NULL;
+
+        try
+        {
+             result = engine->create_query_result(index, query);
+        }
+        catch(js1::LuceneException& e)
+        {
+            *status = e.Code();
+        }
+        catch(CLuceneError& err)
+        {
+            *status = js1::LuceneException::Codes::LUCENE_ERROR;
+        }
+        return result;
     }
 
     JS1_API void STDCALL free_query_result(void* handle, void* result, int* status)
@@ -219,7 +244,18 @@ extern "C"
         engine = reinterpret_cast<js1::LuceneEngine *>(handle);
         queryResult = reinterpret_cast<js1::QueryResult *>(result);
 
-        return engine->free_query_result(queryResult);
+        try
+        {
+            engine->free_query_result(queryResult);
+        }
+        catch(js1::LuceneException& e)
+        {
+            *status = e.Code();
+        }
+        catch(CLuceneError& err)
+        {
+            *status = js1::LuceneException::Codes::LUCENE_ERROR;
+        }
     }
 
     JS1_API void STDCALL handle_indexing_command(void* handle, const char *cmd, const char *body, int* status)

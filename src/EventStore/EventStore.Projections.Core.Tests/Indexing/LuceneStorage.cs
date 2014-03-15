@@ -59,6 +59,12 @@ namespace EventStore.Projections.Core.Tests.Indexing
         }
 
         [Test]
+        public void querying_a_non_existent_index_throws_exception()
+        {
+            Assert.Throws<LuceneException>(()=> _lucene.Query("testindex", "doc1"));
+        }
+
+        [Test]
         public void creating_an_already_existing_index_throws_exception()
         {
             _lucene.Write(IndexingEvents.IndexCreationRequested, IndexCreationEvent());
@@ -83,6 +89,7 @@ namespace EventStore.Projections.Core.Tests.Indexing
             var result = ParseResults(_lucene.Query("testindex", "doc1"));
             Assert.That(result, Is.EquivalentTo(new[] {"ignorethis"}));
         }
+
 
         [Test]
         public void document_update_overwrites_existing_document()
