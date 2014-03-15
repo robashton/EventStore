@@ -24,8 +24,16 @@ namespace js1
 
     LuceneEngine::~LuceneEngine()
     {
-        // TODO: Close writers
-        // TODO: Close directories
+        std::map<std::string, IndexWriter*>::iterator writer_iter;
+        for (writer_iter = this->writers.begin(); writer_iter != this->writers.end(); writer_iter++)
+        {
+            delete writer_iter->second;
+        }
+        std::map<std::string, Directory*>::iterator directory_iter;
+        for (directory_iter = this->directories.begin(); directory_iter != this->directories.end(); directory_iter++)
+        {
+            delete directory_iter->second;
+        }
     };
 
     void LuceneEngine::handle(const std::string& ev, const std::string& body)
@@ -33,8 +41,6 @@ namespace js1
         Json::Value parsed_body;
         Json::Reader reader;
         reader.parse(body, parsed_body);
-
-        this->log(std::string("Handling ") + ev + body);
 
         if(ev == "index-creation-requested") {
             this->create_index(parsed_body);
@@ -45,14 +51,10 @@ namespace js1
         else if(ev == "item-created") {
             this->create_item(parsed_body);
         }
-        else if(ev == "item-updated") {
-            this->update_item(parsed_body);
-        }
     };
 
     void  LuceneEngine::create_index(const Json::Value& body)
     {
-        // TODO: Determine behaviour
         std::string name = body["index_name"].asString();
         Directory* dir = this->create_directory(name);
         this->writers[name] = new IndexWriter(dir, &default_writing_analyzer, true); // TODO: Try false
@@ -75,31 +77,16 @@ namespace js1
 
         Document document;
 
-        // Populate it
         this->populate_document(document, body["fields"]);
 
         // Shove in our other crap
         document.add(*(new Field(L"__id",  utf8_to_wstr(id).c_str() , Field::Store::STORE_YES | Field::Index::INDEX_UNTOKENIZED)));
         document.add(*(new Field(L"__data",  utf8_to_wstr(indexData).c_str() , Field::STORE_YES | Field::Index::INDEX_NO)));
 
-        // Save it
-        writer->addDocument(&document);
-    };
-
-    void LuceneEngine::update_item(const Json::Value& body)
-    {
-        std::string id = body["item_id"].asString();
-        std::string indexName = body["index_name"].asString();
-        IndexWriter* writer = this->get_writer(indexName);
-
-        // TODO: Get the original document out by id
-        Document document;
-
-        // Populate it
-        this->populate_document(document, body["fields"]);
-
-        // Save it
-        writer->addDocument(&document);
+        // Save it (delete any existing though)
+        // Pretty sure this is a leak
+        Term* deleteTerm = new Term(L"__id", utf8_to_wstr(id).c_str());
+        writer->updateDocument(deleteTerm, &document);
     };
 
     IndexWriter* LuceneEngine::get_writer(const std::string& name)
@@ -131,14 +118,10 @@ namespace js1
 
         if(this->index_path == "")
         {
-            // RAM dir
-            this->log(std::string("Creating ram directory for this: ") + name);
             dir = this->directories[name] = new RAMDirectory();
         }
         else
         {
-            // FS dir
-            this->log(std::string("Creating fs directory for this: ") + name);
             std::string full_path = this->index_path + name;
             if ( IndexReader::indexExists(full_path.c_str()) && IndexReader::isLocked(full_path.c_str()))
             {
@@ -218,20 +201,13 @@ namespace js1
 
         std::wstring wquery = utf8_to_wstr(query);
 
-        this->log(std::string("About to parse query: ") + query);
-
         Query* parsedQuery = QueryParser::parse(wquery.c_str(), L"__id", &this->default_writing_analyzer);
-
-        this->log(std::string("Parsed: ") + query);
 
         Hits* hits = searcher.search(parsedQuery);
 
-        this->log(std::string("Searching for: ") + query);
         QueryResult* result = new QueryResult();
 
         result->num_results = hits->length();
-
-        this->log(std::string("Got some results"));
 
         Json::Value results(Json::arrayValue);
         Json::Reader jsonReader;

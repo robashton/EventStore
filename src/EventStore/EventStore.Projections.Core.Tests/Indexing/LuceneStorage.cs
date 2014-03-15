@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using NUnit.Framework;
 using EventStore.Projections.Core.Indexing;
 using Newtonsoft.Json;
@@ -14,16 +16,19 @@ namespace EventStore.Projections.Core.Tests.Indexing
         [SetUp]
         public void create_lucene()
         {
-            System.Console.WriteLine("Tear Up");
             _lucene = Lucene.Create("");
         }
 
         [TearDown]
         public void destroy_lucene()
         {
-            System.Console.WriteLine("Teardown");
             _lucene.Dispose();
             _lucene = null;
+        }
+
+        private string[] ParseResults(string result)
+        {
+            return JsonConvert.DeserializeObject<string[]>(result);
         }
 
         private string IndexCreationEvent(string index = "textindex")
@@ -75,8 +80,8 @@ namespace EventStore.Projections.Core.Tests.Indexing
             _lucene.Write(IndexingEvents.ItemCreated, ItemWriteEvent(id: "doc1", index: "testindex", data: "ignorethis"));
             _lucene.Flush("checkpoint");
 
-            var result = _lucene.Query("testindex", "doc1");
-            Assert.That(result, Is.EqualTo("ignorethis"));
+            var result = ParseResults(_lucene.Query("testindex", "doc1"));
+            Assert.That(result, Is.EquivalentTo(new[] {"ignorethis"}));
         }
 
         [Test]
@@ -88,8 +93,8 @@ namespace EventStore.Projections.Core.Tests.Indexing
             _lucene.Write(IndexingEvents.ItemCreated, ItemWriteEvent(id: "doc1", index: "testindex", data: "updated"));
             _lucene.Flush("checkpoint");
 
-            var result = _lucene.Query("testindex", "doc1");
-            Assert.That(result, Is.EqualTo("updated"));
+            var result = ParseResults(_lucene.Query("testindex", "doc1"));
+            Assert.That(result, Is.EquivalentTo(new[] {"updated"}));
         }
 
         [Test]

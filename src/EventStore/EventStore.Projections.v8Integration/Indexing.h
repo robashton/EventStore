@@ -47,7 +47,6 @@ namespace js1
             void create_index(const Json::Value& body);
             void reset_index(const Json::Value& body);
             void create_item(const Json::Value& body);
-            void update_item(const Json::Value& body);
 
             void log(const std::string& msg);
 
