@@ -39,10 +39,11 @@ extern "C"
 
     // With apologies
 	JS1_API void* open_indexing_system(const char* indexing_path, LOG_CALLBACK logger, int* status);
+	JS1_API int index_position(void *handle, const char* index, int* status);
 	JS1_API void* create_query_result(void *handle, const char *index, const char *query, int* status);
 	JS1_API void free_query_result(void* handle, void* result, int* status);
 	JS1_API void handle_indexing_command(void* handle, const char *cmd, const char *body, int* status);
-	JS1_API void flush_indexing_system(void* handle, const char* checkpoint, int* status);
+	JS1_API void flush_indexing_system(void* handle, const char* index, int position, int* status);
 	JS1_API void close_indexing_system(void* handle, int* status);
 
 }

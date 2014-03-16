@@ -195,14 +195,14 @@ extern "C"
     }
 
 
-    JS1_API void STDCALL flush_indexing_system(void* handle, const char* checkpoint, int* status)
+    JS1_API void STDCALL flush_indexing_system(void* handle, const char* index, int position, int* status)
     {
         *status = 0;
         js1::LuceneEngine *engine;
         engine = reinterpret_cast<js1::LuceneEngine *>(handle);
         try
         {
-            engine->flush(checkpoint);
+            engine->flush(index, position);
         }
         catch(js1::LuceneException& e)
         {
@@ -212,6 +212,11 @@ extern "C"
         {
             *status = js1::LuceneException::Codes::LUCENE_ERROR;
         }
+    }
+
+	JS1_API int index_position(void *handle, const char* index, int* status)
+    {
+        return 0;
     }
 
     JS1_API void* STDCALL create_query_result(void *handle, const char *index, const char *query, int* status)

@@ -84,7 +84,7 @@ namespace EventStore.Projections.Core.Tests.Indexing
         {
             _lucene.Write(IndexingEvents.IndexCreationRequested, IndexCreationEvent(index: "testindex"));
             _lucene.Write(IndexingEvents.ItemCreated, ItemWriteEvent(id: "doc1", index: "testindex", data: "ignorethis"));
-            _lucene.Flush("checkpoint");
+            _lucene.Flush("testindex", 10);
 
             var result = ParseResults(_lucene.Query("testindex", "doc1"));
             Assert.That(result, Is.EquivalentTo(new[] {"ignorethis"}));
@@ -96,9 +96,9 @@ namespace EventStore.Projections.Core.Tests.Indexing
         {
             _lucene.Write(IndexingEvents.IndexCreationRequested, IndexCreationEvent(index: "testindex"));
             _lucene.Write(IndexingEvents.ItemCreated, ItemWriteEvent(id: "doc1", index: "testindex", data: "ignorethis"));
-            _lucene.Flush("checkpoint");
+            _lucene.Flush("testindex", 10);
             _lucene.Write(IndexingEvents.ItemCreated, ItemWriteEvent(id: "doc1", index: "testindex", data: "updated"));
-            _lucene.Flush("checkpoint");
+            _lucene.Flush("testindex", 10);
 
             var result = ParseResults(_lucene.Query("testindex", "doc1"));
             Assert.That(result, Is.EquivalentTo(new[] {"updated"}));
@@ -107,7 +107,11 @@ namespace EventStore.Projections.Core.Tests.Indexing
         [Test]
         public void last_written_checkpoint_can_be_retrieved()
         {
+            _lucene.Write(IndexingEvents.IndexCreationRequested, IndexCreationEvent(index: "testindex"));
+            _lucene.Flush("testindex", 10);
 
+            var result = _lucene.IndexPosition("testindex");
+            Assert.That(result, Is.EqualTo(10));
         }
     }
 }

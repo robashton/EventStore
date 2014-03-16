@@ -117,10 +117,18 @@ namespace EventStore.Projections.Core.Indexing
             }
         }
 
-        public void Flush(string checkpoint)
+        public int IndexPosition(string index)
         {
             int lastStatus = 0;
-            Js1.FlushIndexingSystem(_indexingHandle.Value, checkpoint, ref lastStatus);
+            var result = Js1.IndexPosition(_indexingHandle.Value, index, ref lastStatus);
+            CheckForError(lastStatus);
+            return result;
+        }
+
+        public void Flush(string index, int lastEventNumber)
+        {
+            int lastStatus = 0;
+            Js1.FlushIndexingSystem(_indexingHandle.Value, index, lastEventNumber, ref lastStatus);
             CheckForError(lastStatus);
         }
 

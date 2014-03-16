@@ -1,10 +1,10 @@
 // Copyright (c) 2012, Event Store LLP
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
-// 
+//
 // Redistributions of source code must retain the above copyright notice,
 // this list of conditions and the following disclaimer.
 // Redistributions in binary form must reproduce the above copyright
@@ -24,8 +24,9 @@
 // THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 
+using System;
 using System.Collections.Generic;
 using EventStore.Common.Options;
 using EventStore.Core.Bus;
@@ -48,7 +49,8 @@ namespace EventStore.Projections.Core.Indexing
     public class IndexingWorker : IHandle<SystemMessage.StateChangeMessage>,
                                   IHandle<IndexingMessage.ResetIndex>,
                                   IHandle<IndexingMessage.AddIndex>,
-                                  IHandle<IndexingMessage.Tick>
+                                  IHandle<IndexingMessage.Tick>,
+                                  IHandle<IndexingMessage.QueryRequest>
     {
         private readonly ILogger _logger = LogManager.GetLoggerFor<IndexingWorker>();
         private readonly RunProjections _runProjections;
@@ -84,7 +86,7 @@ namespace EventStore.Projections.Core.Indexing
             get { return _coreOutput; }
         }
 
-        public void Handle(SystemMessage.StateChangeMessage msg) 
+        public void Handle(SystemMessage.StateChangeMessage msg)
         {
             if(!_started)
             {
@@ -105,7 +107,7 @@ namespace EventStore.Projections.Core.Indexing
             }
             _coordinator.Start();
         }
-        
+
         public void Handle(IndexingMessage.AddIndex msg)
         {
             _logger.Info("Adding index {0}", msg.IndexName);
@@ -121,6 +123,20 @@ namespace EventStore.Projections.Core.Indexing
             _logger.Info("Resetting index {0}", msg.IndexName);
         }
 
+        public void Handle(IndexingMessage.QueryRequest request)
+        {
+            IndexingMessage.QueryResult result = null;
+            try
+            {
+              result = new IndexingMessage.QueryResult(_lucene.Query(request.Index, request.Query));
+            }
+            catch(Exception e)
+            {
+              result = new IndexingMessage.QueryResult(e);
+            }
+            request.Envelope.ReplyWith(result);
+        }
+
         public void Handle(IndexingMessage.Tick tick)
         {
             tick.Execute();
@@ -132,6 +148,7 @@ namespace EventStore.Projections.Core.Indexing
             coreInputBus.Subscribe<IndexingMessage.AddIndex>(this);
             coreInputBus.Subscribe<IndexingMessage.ResetIndex>(this);
             coreInputBus.Subscribe<IndexingMessage.Tick>(this);
+            coreInputBus.Subscribe<IndexingMessage.QueryRequest>(this);
 
             // NOTE: I don't actually know if all of these are needed, but they seemed like likely suspects
             coreInputBus.Subscribe(_subscriptionDispatcher.CreateSubscriber<EventReaderSubscriptionMessage.CheckpointSuggested>());

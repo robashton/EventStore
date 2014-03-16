@@ -2,6 +2,10 @@
 #include "Indexing.h"
 
 #include "CLucene.h"
+#include "CLucene/util/gzipcompressstream.h"
+#include "CLucene/util/gzipinputstream.h"
+#include "CLucene/util/byteinputstream.h"
+#include "CLucene/util/streamarray.h"
 #include "CLucene/config/repl_wchar.h"
 #include <iostream>
 
@@ -10,6 +14,7 @@ using namespace lucene::index;
 using namespace lucene::search;
 using namespace lucene::store;
 using namespace lucene::queryParser;
+using namespace lucene::util;
 
 // NOTE: None of this is thread-safe
 // So the read-operations have the possibility of completely balking if indexes haven't been opened yet
@@ -245,18 +250,20 @@ namespace js1
         delete result;
     }
 
-    void LuceneEngine::flush(const std::string& checkpoint)
+    void LuceneEngine::flush(const std::string& index, int position)
     {
-        std::map<std::string, IndexWriter*>::iterator iter;
-        for (iter = this->writers.begin(); iter != this->writers.end(); iter++)
-        {
-            Document checkpointDocument;
-            checkpointDocument.add(*(new Field(L"__id",  L"checkpoint" , Field::Store::STORE_NO | Field::Index::INDEX_UNTOKENIZED)));
-            checkpointDocument.add(*(new Field(L"__value",  utf8_to_wstr(checkpoint).c_str(), Field::Store::STORE_YES | Field::Index::INDEX_NO)));
-            Term deleteTerm(L"__id", L"checkpoint");
-            iter->second->updateDocument(&deleteTerm,  &checkpointDocument);
-            iter->second->flush();
-        }
+        uint8_t* buffer = new uint8_t[4];
+        memcpy(buffer, &position, 4);
+        ValueArray<uint8_t> stored(buffer, 4);
+
+        IndexWriter* writer = this->get_writer(index);
+        Document checkpointDocument;
+        checkpointDocument.add(*(new Field(L"__id",  L"checkpoint" , Field::Store::STORE_NO | Field::Index::INDEX_UNTOKENIZED)));
+        checkpointDocument.add(*(new Field(L"__value", &stored, Field::Store::STORE_YES | Field::Index::INDEX_NO)));
+
+        Term deleteTerm(L"__id", L"checkpoint");
+        writer->updateDocument(&deleteTerm,  &checkpointDocument);
+        writer->flush();
     }
 
     void LuceneEngine::log(const std::string& msg)

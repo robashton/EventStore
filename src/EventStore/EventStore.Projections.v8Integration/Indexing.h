@@ -40,7 +40,7 @@ namespace js1
             void handle(const std::string& ev, const std::string& body);
             QueryResult* create_query_result(const std::string& index, const std::string& query);
             void free_query_result(QueryResult* result);
-            void flush(const std::string& checkpoint);
+            void flush(const std::string& index, int position);
         private:
 
             // Handlers

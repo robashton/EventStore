@@ -273,7 +273,7 @@ function buildLucene() {
 
 function buildJS1() {
     currentDir=$(pwd -P)
-    includeString="-I $currentDir/src/EventStore/libs/include -I $currentDir/clucene/src/shared -I $currentDir/clucene/src/core -I $currentDir/jsoncpp/jsoncpp/include"
+    includeString="-I $currentDir/src/EventStore/libs/include -I $currentDir/clucene/src/shared -I $currentDir/clucene/src/contribs-lib -I $currentDir/clucene/src/core -I $currentDir/jsoncpp/jsoncpp/include"
     libsString="-L $currentDir/src/EventStore/libs -L $currentDir/clucene/bin -L $currentDir/jsoncpp/jsoncpp/lib"
     outputDir="$currentDir/src/EventStore/libs"
 

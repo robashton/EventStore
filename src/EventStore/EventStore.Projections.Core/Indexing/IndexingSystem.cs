@@ -78,7 +78,7 @@ namespace EventStore.Projections.Core.Indexing
         }
     }
 
-    public sealed class Indexing : IHandle<IndexingMessage.QueryRequest>
+    public sealed class Indexing
     {
         public const int VERSION = 3;
 
@@ -142,24 +142,7 @@ namespace EventStore.Projections.Core.Indexing
             // forward all to self
             _worker.CoreOutput.Subscribe(Forwarder.Create<Message>(_indexQueue));
 
-            webInput.Subscribe<IndexingMessage.QueryRequest>(this);
-
             indexInputBus.Subscribe(new UnwrapEnvelopeHandler());
-        }
-
-        public void Handle(IndexingMessage.QueryRequest request)
-        {
-            IndexingMessage.QueryResult result = null;
-
-            try
-            {
-              result = new IndexingMessage.QueryResult(_lucene.Query(request.Index, request.Query));
-            }
-            catch(Exception e)
-            {
-              result = new IndexingMessage.QueryResult(e);
-            }
-            request.Envelope.ReplyWith(result);
         }
 
         public void Start()

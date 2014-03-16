@@ -1,9 +1,9 @@
 // Copyright (c) 2012, Event Store LLP // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
-// 
+//
 // Redistributions of source code must retain the above copyright notice,
 // this list of conditions and the following disclaimer.
 // Redistributions in binary form must reproduce the above copyright
@@ -23,7 +23,7 @@
 // THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 
 using System;
 using System.Collections.Generic;
@@ -94,7 +94,7 @@ namespace EventStore.Projections.Core.Indexing
 
             // TODO: Read this from the index if we can
             // We can read this from the index now we're fls
-            _fromPosition = CheckpointTag.FromStreamPosition(0, streamName, -1); 
+            _fromPosition = CheckpointTag.FromStreamPosition(0, streamName, -1);
             var readerStrategy = ReaderStrategy.Create(0, sourceDefinition.Build(), _timeProvider, stopOnEof: true, runAs: SystemAccount.Principal);
             var readerOptions = new ReaderSubscriptionOptions(1024*1024, 1024, stopOnEof: false, stopAfterNEvents: null);
             _subscriptionId = _subscriptionDispatcher.PublishSubscribe(
@@ -104,20 +104,20 @@ namespace EventStore.Projections.Core.Indexing
         }
 
 
-        public void EnsureTickPending() 
+        public void EnsureTickPending()
         {
             if(_tickPending) return;
             _tickPending = true;
             _publisher.Publish(new IndexingMessage.Tick(Tick));
         }
 
-        private void Tick() 
+        private void Tick()
         {
             _tickPending = false;
             this.Flush();
         }
 
-        public void Stop() 
+        public void Stop()
         {
             this.Unsubscribe();
         }
@@ -158,12 +158,12 @@ namespace EventStore.Projections.Core.Indexing
         private void Flush()
         {
             _logger.Info("Flushing");
-            foreach(var @event in _batch) 
+            foreach(var @event in _batch)
             {
                 _lucene.Write(@event.ResolvedEvent.EventType, @event.ResolvedEvent.Data);
             }
-            _lucene.Flush(_lastReaderPosition.ToJsonString(default(ProjectionVersion)));
-            
+            _lucene.Flush(_indexName, 0);
+
             // publish commit point to indexing management stream
             _batch.Clear();
             _logger.Info("Flushed");

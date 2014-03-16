@@ -11,7 +11,7 @@ Halp
     - Consider validating whether an index exists ahead of time so we can fault projection
     - withIndex("Foo") sets a variable
 
-- Allow configurable max timeout/etc
+- Allow configurable max timeout/etc on the indexing streams
 
 Building Clucene
   - Cmake as a dependency - Windows - Cygwin? Really????
