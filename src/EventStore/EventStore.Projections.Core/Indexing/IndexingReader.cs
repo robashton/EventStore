@@ -160,6 +160,7 @@ namespace EventStore.Projections.Core.Indexing
             _logger.Info("Flushing");
             foreach(var @event in _batch)
             {
+                _logger.Info("Omg {0}", @event.ResolvedEvent.EventType);
                 _lucene.Write(@event.ResolvedEvent.EventType, @event.ResolvedEvent.Data);
             }
             _lucene.Flush(_indexName, 0);

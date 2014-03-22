@@ -104,7 +104,7 @@ namespace EventStore.Projections.Core.v8
         public static extern void FlushIndexingSystem(IntPtr handle,
 			[MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef=typeof(UTF8Marshaler))
 		 	string index,
-			int lastEventNumber,
+            int position,
             ref int status);
 
         [DllImport("js1", EntryPoint = "index_position")]

@@ -252,14 +252,15 @@ namespace js1
 
     void LuceneEngine::flush(const std::string& index, int position)
     {
-//         int* buffer = new int[1];
-//         buffer[0] = position;
-  //       ValueArray<uint8_t> stored(reinterpret_cast<uint8_t*>(buffer), 4);
-//
+        this->log("WTF MAN");
+         int* buffer = new int[1];
+         buffer[0] = position;
+         ValueArray<uint8_t> stored(reinterpret_cast<uint8_t*>(buffer), 4);
+
         IndexWriter* writer = this->get_writer(index);
         Document checkpointDocument;
         checkpointDocument.add(*(new Field(L"__id",  L"checkpoint" , Field::Store::STORE_NO | Field::Index::INDEX_UNTOKENIZED)));
-//        checkpointDocument.add(*(new Field(L"__value", &stored, Field::Store::STORE_YES | Field::Index::INDEX_NO)));
+        checkpointDocument.add(*(new Field(L"__value", &stored, Field::Store::STORE_YES | Field::Index::INDEX_NO)));
 
         Term deleteTerm(L"__id", L"checkpoint");
         writer->updateDocument(&deleteTerm,  &checkpointDocument);
