@@ -47,6 +47,8 @@ namespace js1
         Json::Reader reader;
         reader.parse(body, parsed_body);
 
+        this->log(ev);
+
         if(ev == "index-creation-requested") {
             this->create_index(parsed_body);
         }
@@ -101,6 +103,7 @@ namespace js1
         {
             throw LuceneException(LuceneException::Codes::NO_INDEX);
         }
+
         return writer;
     };
 
@@ -252,7 +255,7 @@ namespace js1
 
     void LuceneEngine::flush(const std::string& index, int position)
     {
-        this->log("WTF MAN");
+         this->log(std::string("Flushing ") + index);
          int* buffer = new int[1];
          buffer[0] = position;
          ValueArray<uint8_t> stored(reinterpret_cast<uint8_t*>(buffer), 4);

@@ -198,23 +198,23 @@ extern "C"
     JS1_API void STDCALL flush_indexing_system(void* handle, const char* index, int position, int* status)
     {
         *status = 0;
-//        js1::LuceneEngine *engine;
-//        engine = reinterpret_cast<js1::LuceneEngine *>(handle);
-//        try
-//        {
-//           engine->flush(index, position);
-//           std::cout << "Actual success" << std::endl;
-//        }
-//        catch(js1::LuceneException& e)
-//        {
-//            *status = e.Code();
-//           std::cout << "Fail" << std::endl;
-//        }
-//        catch(CLuceneError& err)
-//        {
-//            *status = js1::LuceneException::Codes::LUCENE_ERROR;
-//           std::cout << "Fail" << std::endl;
-//        }
+        js1::LuceneEngine *engine;
+        engine = reinterpret_cast<js1::LuceneEngine *>(handle);
+        try
+        {
+           engine->flush(index, position);
+           std::cout << "Actual success" << std::endl;
+        }
+        catch(js1::LuceneException& e)
+        {
+            *status = e.Code();
+           std::cout << "Fail" << std::endl;
+        }
+        catch(CLuceneError& err)
+        {
+            *status = js1::LuceneException::Codes::LUCENE_ERROR;
+           std::cout << "Fail" << std::endl;
+        }
     }
 
 	JS1_API int index_position(void *handle, const char* index, int* status)

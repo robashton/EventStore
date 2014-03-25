@@ -47,10 +47,10 @@ using EventStore.Projections.Core.Services.Processing;
 namespace EventStore.Projections.Core.Indexing
 {
     public class IndexingWorker : IHandle<SystemMessage.StateChangeMessage>,
-                                  IHandle<IndexingMessage.ResetIndex>,
-                                  IHandle<IndexingMessage.AddIndex>,
-                                  IHandle<IndexingMessage.Tick>,
-                                  IHandle<IndexingMessage.QueryRequest>
+    IHandle<IndexingMessage.ResetIndex>,
+    IHandle<IndexingMessage.AddIndex>,
+    IHandle<IndexingMessage.Tick>,
+    IHandle<IndexingMessage.QueryRequest>
     {
         private readonly ILogger _logger = LogManager.GetLoggerFor<IndexingWorker>();
         private readonly RunProjections _runProjections;
@@ -76,7 +76,7 @@ namespace EventStore.Projections.Core.Indexing
             _subscriptionDispatcher = new ReaderSubscriptionDispatcher(publisher);
             _ioDispatcher = new IODispatcher(publisher, new PublishEnvelope(inputQueue));
             _eventReaderCoreService = new EventReaderCoreService(
-                publisher, _ioDispatcher, 10, db.Config.WriterCheckpoint, runHeadingReader: runProjections >= RunProjections.System);
+                    publisher, _ioDispatcher, 10, db.Config.WriterCheckpoint, runHeadingReader: runProjections >= RunProjections.System);
             _coordinator = new IndexingManager(inputQueue, CoreOutput, _subscriptionDispatcher, _timeProvider);
             _lucene = lucene;
         }
@@ -128,12 +128,15 @@ namespace EventStore.Projections.Core.Indexing
             IndexingMessage.QueryResult result = null;
             try
             {
-              result = new IndexingMessage.QueryResult(_lucene.Query(request.Index, request.Query));
+                _logger.Info("Executing {0} ", request.Query);
+                result = new IndexingMessage.QueryResult(_lucene.Query(request.Index, request.Query));
             }
             catch(Exception e)
             {
-              result = new IndexingMessage.QueryResult(e);
+                _logger.Info("Failed {0} ", request.Query);
+                result = new IndexingMessage.QueryResult(e);
             }
+            _logger.Info("Responding {0} ", request.Query);
             request.Envelope.ReplyWith(result);
         }
 

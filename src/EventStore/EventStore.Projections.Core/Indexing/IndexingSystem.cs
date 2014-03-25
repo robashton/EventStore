@@ -119,6 +119,7 @@ namespace EventStore.Projections.Core.Indexing
 
             // Only one worker to process all the things
             // TODO: Consider disposal
+            // TODO: Strip all this back again and replace with a single multiplexing worker
             _lucene = Lucene.Create(_indexPath);
             _worker = new IndexingWorker(db, _indexQueue, timeProvider, runProjections, _lucene);
             _worker.SetupMessaging(indexInputBus);
@@ -138,6 +139,10 @@ namespace EventStore.Projections.Core.Indexing
 
             // Need this one because we wait for system start-up
             mainBus.Subscribe(Forwarder.Create<SystemMessage.StateChangeMessage>(_indexQueue));
+
+            // TODO: Sort this mess out
+            // Forward web requests to the worker
+            webInput.Subscribe(Forwarder.Create<Message>(_indexQueue));
 
             // forward all to self
             _worker.CoreOutput.Subscribe(Forwarder.Create<Message>(_indexQueue));

@@ -66,8 +66,6 @@ namespace EventStore.Projections.Core.Indexing
 
         protected override void SubscribeCore(IHttpService service)
         {
-            Register(service, "/rob",
-                     HttpMethod.Get, OnRob, Codec.NoCodecs, SupportedCodecs);
             Register(service, "/query/{index}/{query}",
                      HttpMethod.Get, OnQuery, Codec.NoCodecs, SupportedCodecs);
         }
@@ -131,16 +129,6 @@ namespace EventStore.Projections.Core.Indexing
         private string OperationFailedFormatter(ICodec codec, IndexingMessage.OperationFailed message)
         {
             return message.Reason;
-        }
-
-        private void OnRob(HttpEntityManager http, UriTemplateMatch match)
-        {
-            if (_httpForwarder.ForwardRequest(http))
-                return;
-
-            Publish( new IndexingMessage.Start());
-
-            http.ReplyStatus(200, "Ok", Console.WriteLine);
         }
     }
 }
