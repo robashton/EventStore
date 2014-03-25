@@ -262,19 +262,22 @@ namespace js1
         Hits* hits = searcher.search((Query*)query);
 
         if(hits->length() == 0)
+        {
             throw LuceneException(LuceneException::Codes::NO_INDEX);
-//
+        }
+
         Document &checkpointDoc = hits->doc(0);
         Field* checkpointField = checkpointDoc.getField(L"__value");
         const ValueArray<uint8_t>& bytes = *checkpointField->binaryValue();
-//
-        // Obviously not platform independent
+
+        //
+        // Obviously not platform independent but there is probably a more official
+        // way of extracting the binary data from this crap
         int result = 0;
         uint8_t* pointer = reinterpret_cast<uint8_t*>(&result);
-        for(int i =0 ; i < i ; i++) {
+        for(int i = 0 ; i < 4 ; i++) {
             pointer[i] = bytes[i];
         }
-        this->log("Got a value out of the crap");
 
         _CLLDELETE(query);
         _CLLDELETE(hits);
