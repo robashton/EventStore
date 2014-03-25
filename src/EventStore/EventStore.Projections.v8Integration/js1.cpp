@@ -52,7 +52,7 @@ extern "C"
     };
 
     JS1_API void * STDCALL compile_prelude(const uint16_t *prelude, const uint16_t *file_name, LOAD_MODULE_CALLBACK load_module_callback,
-        ENTER_CANCELLABLE_REGION enter_calcellable_region_callback, EXIT_CANCELLABLE_REGION exit_cancellable_region_callback, LOG_CALLBACK log_callback)
+            ENTER_CANCELLABLE_REGION enter_calcellable_region_callback, EXIT_CANCELLABLE_REGION exit_cancellable_region_callback, LOG_CALLBACK log_callback)
     {
         js1::PreludeScript *prelude_script;
         prelude_script = new js1::PreludeScript(load_module_callback, enter_calcellable_region_callback, exit_cancellable_region_callback, log_callback);
@@ -72,12 +72,12 @@ extern "C"
     };
 
     JS1_API void * STDCALL compile_query(
-        void *prelude,
-        const uint16_t *script,
-        const uint16_t *file_name,
-        REGISTER_COMMAND_HANDLER_CALLBACK register_command_handler_callback,
-        REVERSE_COMMAND_CALLBACK reverse_command_callback
-        )
+            void *prelude,
+            const uint16_t *script,
+            const uint16_t *file_name,
+            REGISTER_COMMAND_HANDLER_CALLBACK register_command_handler_callback,
+            REVERSE_COMMAND_CALLBACK reverse_command_callback
+            )
     {
 
         js1::PreludeScript *prelude_script = reinterpret_cast<js1::PreludeScript *>(prelude);
@@ -110,7 +110,7 @@ extern "C"
     };
 
     JS1_API bool STDCALL execute_command_handler(void *script_handle, void* event_handler_handle, const uint16_t *data_json,
-        const uint16_t *data_other[], int32_t other_length, uint16_t **result_json, uint16_t **result2_json, void **memory_handle)
+            const uint16_t *data_other[], int32_t other_length, uint16_t **result_json, uint16_t **result2_json, void **memory_handle)
     {
 
         js1::QueryScript *query_script;
@@ -202,24 +202,41 @@ extern "C"
         engine = reinterpret_cast<js1::LuceneEngine *>(handle);
         try
         {
-           engine->flush(index, position);
-           std::cout << "Actual success" << std::endl;
+            engine->flush(index, position);
+            std::cout << "Actual success" << std::endl;
         }
         catch(js1::LuceneException& e)
         {
             *status = e.Code();
-           std::cout << "Fail" << std::endl;
+            std::cout << "Fail" << std::endl;
         }
         catch(CLuceneError& err)
         {
             *status = js1::LuceneException::Codes::LUCENE_ERROR;
-           std::cout << "Fail" << std::endl;
+            std::cout << "Fail" << std::endl;
         }
     }
 
-	JS1_API int index_position(void *handle, const char* index, int* status)
+    JS1_API int index_position(void *handle, const char* index, int* status)
     {
-        return 0;
+        *status = 0;
+        js1::LuceneEngine *engine;
+        engine = reinterpret_cast<js1::LuceneEngine *>(handle);
+        int result = 0;
+
+        try
+        {
+            result = engine->index_position(index);
+        }
+        catch(js1::LuceneException& e)
+        {
+            *status = e.Code();
+        }
+        catch(CLuceneError& err)
+        {
+            *status = js1::LuceneException::Codes::LUCENE_ERROR;
+        }
+        return result;
     }
 
     JS1_API void* STDCALL create_query_result(void *handle, const char *index, const char *query, int* status)
@@ -231,7 +248,7 @@ extern "C"
 
         try
         {
-             result = engine->create_query_result(index, query);
+            result = engine->create_query_result(index, query);
         }
         catch(js1::LuceneException& e)
         {
