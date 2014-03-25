@@ -270,9 +270,8 @@ namespace js1
         Field* checkpointField = checkpointDoc.getField(L"__value");
         const ValueArray<uint8_t>& bytes = *checkpointField->binaryValue();
 
-        //
         // Obviously not platform independent but there is probably a more official
-        // way of extracting the binary data from this crap
+        // way of extracting the binary data from this crap anyway
         int result = 0;
         uint8_t* pointer = reinterpret_cast<uint8_t*>(&result);
         for(int i = 0 ; i < 4 ; i++) {
