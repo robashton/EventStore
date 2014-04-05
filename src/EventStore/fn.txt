@@ -1,0 +1,1 @@
+EventStore.Projections.Core/Indexing/Lucene.cs

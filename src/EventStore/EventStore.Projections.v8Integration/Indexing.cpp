@@ -254,7 +254,11 @@ namespace js1
 
     int LuceneEngine::index_position(const std::string& index)
     {
-        Directory* dir = this->get_directory(index);
+        this->log(std::string("Opening index" ) + index);
+        // Change semantics, this needs to be open index
+        Directory* dir = this->create_directory(index);
+        this->writers[index] = new IndexWriter(dir, &default_writing_analyzer, false);
+
         IndexSearcher searcher(dir);
         Term checkpointTerm(L"__id", L"checkpoint");
         TermQuery* query = new TermQuery(&checkpointTerm);

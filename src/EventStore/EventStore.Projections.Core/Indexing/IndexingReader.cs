@@ -63,10 +63,12 @@ namespace EventStore.Projections.Core.Indexing
         private Guid _subscriptionId;
         private CheckpointTag _lastReaderPosition;
         private CheckpointTag _fromPosition;
+        private int _startPosition = -1;
         private readonly Lucene _lucene;
         private bool _tickPending;
         private IPublisher _publisher;
         private readonly string _indexName;
+        private readonly string _streamName;
 
         public IndexingReader(
             string indexName,
@@ -81,20 +83,34 @@ namespace EventStore.Projections.Core.Indexing
             _publisher = publisher;
             _subscriptionDispatcher = subscriptionDispatcher;
             _timeProvider = timeProvider;
+            _streamName = String.Format("$index-{0}", _indexName);
             _lucene = lucene;
-            _logger.Info("Creating a goddamned IndexingReader");
+            _logger.Info("Creating a goddamned IndexingReader for {0}", _indexName);
+        }
+
+        public void ReadCheckpoint()
+        {
+            _logger.Info("Reading the checkpoint for {0}", _indexName);
+            try {
+                _startPosition = _lucene.IndexPosition(_indexName);
+                _logger.Info("Read the checkpoint for {0} as {1}", _indexName, _startPosition);
+            }
+            catch(LuceneException ex) {
+                _startPosition = -1;
+                _logger.Info("No existing index found for {0}, starting checkpoint at -1 ({1})", _indexName, ex.Message);
+            }
+            _fromPosition = CheckpointTag.FromStreamPosition(0, _streamName, _startPosition);
         }
 
         public void Start()
         {
-            var streamName = String.Format("$index-{0}", _indexName);
+            this.ReadCheckpoint();
             var sourceDefinition = new SourceDefinitionBuilder();
-            sourceDefinition.FromStream(streamName);
+            sourceDefinition.FromStream(_streamName);
             sourceDefinition.AllEvents();
 
             // TODO: Read this from the index if we can
             // We can read this from the index now we're fls
-            _fromPosition = CheckpointTag.FromStreamPosition(0, streamName, -1);
             var readerStrategy = ReaderStrategy.Create(0, sourceDefinition.Build(), _timeProvider, stopOnEof: true, runAs: SystemAccount.Principal);
             var readerOptions = new ReaderSubscriptionOptions(1024*1024, 1024, stopOnEof: false, stopAfterNEvents: null);
             _subscriptionId = _subscriptionDispatcher.PublishSubscribe(

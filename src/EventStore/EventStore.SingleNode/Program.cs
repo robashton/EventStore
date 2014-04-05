@@ -1,10 +1,10 @@
 ﻿// Copyright (c) 2012, Event Store LLP
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
-// 
+//
 // Redistributions of source code must retain the above copyright notice,
 // this list of conditions and the following disclaimer.
 // Redistributions in binary form must reproduce the above copyright
@@ -24,7 +24,7 @@
 // THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 using System;
 using System.IO;
 using System.Net;
@@ -102,7 +102,7 @@ namespace EventStore.SingleNode
                 ? new[] {NodeSubsystems.Projections}
                 : new NodeSubsystems[0];
             _projections = new Projections.Core.ProjectionsSubsystem(opts.ProjectionThreads, runProjections);
-			_indexing = new Projections.Core.Indexing.IndexingSystem("Indexes/", runProjections);
+			_indexing = new Projections.Core.Indexing.IndexingSystem(dbPath, runProjections);
             _node = new SingleVNode(db, vnodeSettings, dbVerifyHashes, ESConsts.MemTableEntryCount, _projections, _indexing);
             RegisterWebControllers(enabledNodeSubsystems);
             RegisterUIProjections();
@@ -139,7 +139,7 @@ namespace EventStore.SingleNode
             var prefixes = options.HttpPrefixes.IsNotEmpty() ? options.HttpPrefixes : new[] {httpEndPoint.ToHttpUrl()};
             var vnodeSettings = new SingleVNodeSettings(tcpEndPoint,
                                                         secureTcpEndPoint,
-                                                        httpEndPoint, 
+                                                        httpEndPoint,
                                                         prefixes.Select(p => p.Trim()).ToArray(),
                                                         options.EnableTrustedAuth,
                                                         certificate,

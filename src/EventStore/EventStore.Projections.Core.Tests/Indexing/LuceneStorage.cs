@@ -98,7 +98,7 @@ namespace EventStore.Projections.Core.Tests.Indexing
             _lucene.Write(IndexingEvents.ItemCreated, ItemWriteEvent(id: "doc1", index: "testindex", data: "ignorethis"));
             _lucene.Flush("testindex", 10);
             _lucene.Write(IndexingEvents.ItemCreated, ItemWriteEvent(id: "doc1", index: "testindex", data: "updated"));
-            _lucene.Flush("testindex", 10);
+            _lucene.Flush("testindex", 11);
 
             var result = ParseResults(_lucene.Query("testindex", "doc1"));
             Assert.That(result, Is.EquivalentTo(new[] {"updated"}));
