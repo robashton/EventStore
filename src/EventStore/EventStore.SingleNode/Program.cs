@@ -76,9 +76,8 @@ namespace EventStore.SingleNode
                 ? new[] {NodeSubsystems.Projections}
                 : new NodeSubsystems[0];
             _projections = new Projections.Core.ProjectionsSubsystem(opts.ProjectionThreads, runProjections);
-            _node = new SingleVNode(db, vnodeSettings, dbVerifyHashes, opts.MaxMemTableSize, _projections);
-			_indexing = new Projections.Core.Indexing.IndexingSystem(dbPath, runProjections);
-            _node = new SingleVNode(db, vnodeSettings, dbVerifyHashes, ESConsts.MemTableEntryCount, _projections, _indexing);
+            _indexing = new Projections.Core.Indexing.IndexingSystem(dbPath, runProjections);
+            _node = new SingleVNode(db, vnodeSettings, dbVerifyHashes, opts.MaxMemTableSize, _projections, _indexing);
             RegisterWebControllers(enabledNodeSubsystems);
             RegisterUIProjections();
         }
