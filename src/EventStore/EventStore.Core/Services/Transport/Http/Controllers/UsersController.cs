@@ -1,35 +1,9 @@
-﻿// Copyright (c) 2012, Event Store LLP
-// All rights reserved.
-// 
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
-// 
-// Redistributions of source code must retain the above copyright notice,
-// this list of conditions and the following disclaimer.
-// Redistributions in binary form must reproduce the above copyright
-// notice, this list of conditions and the following disclaimer in the
-// documentation and/or other materials provided with the distribution.
-// Neither the name of the Event Store LLP nor the names of its
-// contributors may be used to endorse or promote products derived from
-// this software without specific prior written permission
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-// HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
-
-using System;
+﻿using System;
 using EventStore.Core.Bus;
 using EventStore.Core.Messages;
+using EventStore.Common.Log;
 using EventStore.Transport.Http;
+using EventStore.Transport.Http.Codecs;
 using EventStore.Transport.Http.EntityManagement;
 
 namespace EventStore.Core.Services.Transport.Http.Controllers
@@ -38,6 +12,8 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
     {
         private readonly IHttpForwarder _httpForwarder;
         private readonly IPublisher _networkSendQueue;
+        private static readonly ICodec[] DefaultCodecs = new ICodec[] { Codec.Json, Codec.Xml };
+        private static readonly ILogger Log = LogManager.GetLoggerFor<CommunicationController>();
 
         public UsersController(IHttpForwarder httpForwarder, IPublisher publisher, IPublisher networkSendQueue)
             : base(publisher)
@@ -51,13 +27,13 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
             RegisterUrlBased(service, "/users/", HttpMethod.Get, GetUsers);
             RegisterUrlBased(service, "/users/{login}", HttpMethod.Get, GetUser);
             RegisterUrlBased(service, "/users/$current", HttpMethod.Get, GetCurrentUser);
-            RegisterTextBody(service, "/users/", HttpMethod.Post, PostUser);
-            RegisterTextBody(service, "/users/{login}", HttpMethod.Put, PutUser);
+            Register(service, "/users/", HttpMethod.Post, PutUser, DefaultCodecs, DefaultCodecs);
+            Register(service, "/users/{login}", HttpMethod.Put, PutUser, DefaultCodecs, DefaultCodecs);
             RegisterUrlBased(service, "/users/{login}", HttpMethod.Delete, DeleteUser);
             RegisterUrlBased(service, "/users/{login}/command/enable", HttpMethod.Post, PostCommandEnable);
             RegisterUrlBased(service, "/users/{login}/command/disable", HttpMethod.Post, PostCommandDisable);
-            RegisterTextBody(service, "/users/{login}/command/reset-password", HttpMethod.Post, PostCommandResetPassword);
-            RegisterTextBody(service, "/users/{login}/command/change-password", HttpMethod.Post, PostCommandChangePassword);
+            Register(service, "/users/{login}/command/reset-password", HttpMethod.Post, PostCommandResetPassword, DefaultCodecs, DefaultCodecs);
+            Register(service, "/users/{login}/command/change-password", HttpMethod.Post, PostCommandChangePassword, DefaultCodecs, DefaultCodecs);
         }
 
         private void GetUsers(HttpEntityManager http, UriTemplateMatch match)
@@ -96,7 +72,7 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
             Publish(message);
         }
 
-        private void PostUser(HttpEntityManager http, string s)
+        private void PostUser(HttpEntityManager http)
         {
             if (_httpForwarder.ForwardRequest(http))
                 return;
@@ -109,21 +85,29 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
                                        MakeUrl(http, "/users/" + Uri.EscapeDataString(result.LoginName)))
                                    : configuration;
                     });
-            var data = http.RequestCodec.From<PostUserData>(s);
-            var message = new UserManagementMessage.Create(
-                envelope, http.User, data.LoginName, data.FullName, data.Groups, data.Password);
-            Publish(message);
+            http.ReadTextRequestAsync(
+                (o, s) =>
+                {
+                    var data = http.RequestCodec.From<PostUserData>(s);
+                    var message = new UserManagementMessage.Create(
+                        envelope, http.User, data.LoginName, data.FullName, data.Groups, data.Password);
+                    Publish(message);
+                }, x => Log.DebugException(x, "Reply Text Content Failed."));
         }
 
-        private void PutUser(HttpEntityManager http, UriTemplateMatch match, string s)
+        private void PutUser(HttpEntityManager http, UriTemplateMatch match)
         {
             if (_httpForwarder.ForwardRequest(http))
                 return;
             var envelope = CreateReplyEnvelope<UserManagementMessage.UpdateResult>(http);
-            var login = match.BoundVariables["login"];
-            var data = http.RequestCodec.From<PutUserData>(s);
-            var message = new UserManagementMessage.Update(envelope, http.User, login, data.FullName, data.Groups);
-            Publish(message);
+            http.ReadTextRequestAsync(
+                (o, s) =>
+                {
+                    var login = match.BoundVariables["login"];
+                    var data = http.RequestCodec.From<PutUserData>(s);
+                    var message = new UserManagementMessage.Update(envelope, http.User, login, data.FullName, data.Groups);
+                    Publish(message);
+                }, x => Log.DebugException(x, "Reply Text Content Failed."));
         }
 
         private void DeleteUser(HttpEntityManager http, UriTemplateMatch match)
@@ -156,27 +140,37 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
             Publish(message);
         }
 
-        private void PostCommandResetPassword(HttpEntityManager http, UriTemplateMatch match, string s)
+        private void PostCommandResetPassword(HttpEntityManager http, UriTemplateMatch match)
         {
             if (_httpForwarder.ForwardRequest(http))
                 return;
             var envelope = CreateReplyEnvelope<UserManagementMessage.UpdateResult>(http);
-            var login = match.BoundVariables["login"];
-            var data = http.RequestCodec.From<ResetPasswordData>(s);
-            var message = new UserManagementMessage.ResetPassword(envelope, http.User, login, data.NewPassword);
-            Publish(message);
+            http.ReadTextRequestAsync(
+                (o, s) =>
+                {
+                    var login = match.BoundVariables["login"];
+                    var data = http.RequestCodec.From<ResetPasswordData>(s);
+                    var message = new UserManagementMessage.ResetPassword(envelope, http.User, login, data.NewPassword);
+                    Publish(message);
+                }, x => Log.DebugException(x, "Reply Text Content Failed."));
         }
 
-        private void PostCommandChangePassword(HttpEntityManager http, UriTemplateMatch match, string s)
+        private void PostCommandChangePassword(HttpEntityManager http, UriTemplateMatch match)
         {
             if (_httpForwarder.ForwardRequest(http))
                 return;
             var envelope = CreateReplyEnvelope<UserManagementMessage.UpdateResult>(http);
-            var login = match.BoundVariables["login"];
-            var data = http.RequestCodec.From<ChangePasswordData>(s);
-            var message = new UserManagementMessage.ChangePassword(
-                envelope, http.User, login, data.CurrentPassword, data.NewPassword);
-            Publish(message);
+            http.ReadTextRequestAsync(
+                (o, s) =>
+                    {
+                        var login = match.BoundVariables["login"];
+                        var data = http.RequestCodec.From<ChangePasswordData>(s);
+                        var message = new UserManagementMessage.ChangePassword(
+                            envelope, http.User, login, data.CurrentPassword, data.NewPassword);
+                        Publish(message);
+
+                    },
+                x => Log.DebugException(x, "Reply Text Content Failed."));
         }
 
         private SendToHttpEnvelope<T> CreateReplyEnvelope<T>(

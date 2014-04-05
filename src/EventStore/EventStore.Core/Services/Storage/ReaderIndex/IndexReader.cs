@@ -1,31 +1,4 @@
-﻿// Copyright (c) 2012, Event Store LLP
-// All rights reserved.
-// 
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
-// 
-// Redistributions of source code must retain the above copyright notice,
-// this list of conditions and the following disclaimer.
-// Redistributions in binary form must reproduce the above copyright
-// notice, this list of conditions and the following disclaimer in the
-// documentation and/or other materials provided with the distribution.
-// Neither the name of the Event Store LLP nor the names of its
-// contributors may be used to endorse or promote products derived from
-// this software without specific prior written permission
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-// HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
-using System;
+﻿using System;
 using System.Linq;
 using System.Security.Principal;
 using System.Threading;
@@ -66,7 +39,7 @@ namespace EventStore.Core.Services.Storage.ReaderIndex
         public long NotCachedStreamInfo { get { return Interlocked.Read(ref _notCachedStreamInfo); } }
         public long HashCollisions { get { return Interlocked.Read(ref _hashCollisions); } }
 
-        private readonly IIndexBackend _backend;
+        private readonly IIndexCache _cache;
         private readonly IHasher _hasher;
         private readonly ITableIndex _tableIndex;
         private readonly StreamMetadata _metastreamMetadata;
@@ -75,14 +48,14 @@ namespace EventStore.Core.Services.Storage.ReaderIndex
         private long _cachedStreamInfo;
         private long _notCachedStreamInfo;
 
-        public IndexReader(IIndexBackend backend, IHasher hasher, ITableIndex tableIndex, StreamMetadata metastreamMetadata)
+        public IndexReader(IIndexCache cache, IHasher hasher, ITableIndex tableIndex, StreamMetadata metastreamMetadata)
         {
-            Ensure.NotNull(backend, "backend");
+            Ensure.NotNull(cache, "backend");
             Ensure.NotNull(hasher, "hasher");
             Ensure.NotNull(tableIndex, "tableIndex");
             Ensure.NotNull(metastreamMetadata, "metastreamMetadata");
 
-            _backend = backend;
+            _cache = cache;
             _hasher = hasher;
             _tableIndex = tableIndex;
             _metastreamMetadata = metastreamMetadata;
@@ -93,7 +66,7 @@ namespace EventStore.Core.Services.Storage.ReaderIndex
         {
             Ensure.NotNullOrEmpty(streamId, "streamId");
             if (eventNumber < -1) throw new ArgumentOutOfRangeException("eventNumber");
-            using (var reader = _backend.BorrowReader())
+            using (var reader = _cache.BorrowReader())
             {
                 return ReadEventInternal(reader, streamId, eventNumber);
             }
@@ -133,7 +106,7 @@ namespace EventStore.Core.Services.Storage.ReaderIndex
 
         PrepareLogRecord IIndexReader.ReadPrepare(string streamId, int eventNumber)
         {
-            using (var reader = _backend.BorrowReader())
+            using (var reader = _cache.BorrowReader())
             {
                 return ReadPrepareInternal(reader, streamId, eventNumber);
             }
@@ -184,7 +157,7 @@ namespace EventStore.Core.Services.Storage.ReaderIndex
             Ensure.Positive(maxCount, "maxCount");
 
             var streamHash = _hasher.Hash(streamId);
-            using (var reader = _backend.BorrowReader())
+            using (var reader = _cache.BorrowReader())
             {
                 var lastEventNumber = GetStreamLastEventNumberCached(reader, streamId);
                 var metadata = GetStreamMetadataCached(reader, streamId);
@@ -233,7 +206,7 @@ namespace EventStore.Core.Services.Storage.ReaderIndex
             Ensure.Positive(maxCount, "maxCount");
 
             var streamHash = _hasher.Hash(streamId);
-            using (var reader = _backend.BorrowReader())
+            using (var reader = _cache.BorrowReader())
             {
                 var lastEventNumber = GetStreamLastEventNumberCached(reader, streamId);
                 var metadata = GetStreamMetadataCached(reader, streamId);
@@ -286,7 +259,7 @@ namespace EventStore.Core.Services.Storage.ReaderIndex
         public string GetEventStreamIdByTransactionId(long transactionId)
         {
             Ensure.Nonnegative(transactionId, "transactionId");
-            using (var reader = _backend.BorrowReader())
+            using (var reader = _cache.BorrowReader())
             {
                 var res = ReadPrepareInternal(reader, transactionId);
                 return res == null ? null : res.EventStreamId;
@@ -297,7 +270,7 @@ namespace EventStore.Core.Services.Storage.ReaderIndex
         StreamAccess IIndexReader.CheckStreamAccess(string streamId, StreamAccessType streamAccessType, IPrincipal user)
         {
             Ensure.NotNullOrEmpty(streamId, "streamId");
-            using (var reader = _backend.BorrowReader())
+            using (var reader = _cache.BorrowReader())
             {
                 return CheckStreamAccessInternal(reader, streamId, streamAccessType, user);
             }
@@ -327,7 +300,7 @@ namespace EventStore.Core.Services.Storage.ReaderIndex
                 && streamId == SystemStreams.AllStream)
                 return new StreamAccess(false);
 
-            var sysSettings = _backend.GetSystemSettings() ?? SystemSettings.Default;
+            var sysSettings = _cache.GetSystemSettings() ?? SystemSettings.Default;
             var meta = GetStreamMetadataCached(reader, streamId);
             StreamAcl acl;
             StreamAcl sysAcl;
@@ -370,7 +343,7 @@ namespace EventStore.Core.Services.Storage.ReaderIndex
         int IIndexReader.GetStreamLastEventNumber(string streamId)
         {
             Ensure.NotNullOrEmpty(streamId, "streamId");
-            using (var reader = _backend.BorrowReader())
+            using (var reader = _cache.BorrowReader())
             {
                 return GetStreamLastEventNumberCached(reader, streamId);
             }
@@ -379,7 +352,7 @@ namespace EventStore.Core.Services.Storage.ReaderIndex
         StreamMetadata IIndexReader.GetStreamMetadata(string streamId)
         {
             Ensure.NotNullOrEmpty(streamId, "streamId");
-            using (var reader = _backend.BorrowReader())
+            using (var reader = _cache.BorrowReader())
             {
                 return GetStreamMetadataCached(reader, streamId);
             }
@@ -392,7 +365,7 @@ namespace EventStore.Core.Services.Storage.ReaderIndex
                 && GetStreamLastEventNumberCached(reader, SystemStreams.OriginalStreamOf(streamId)) == EventNumber.DeletedStream)
                 return EventNumber.DeletedStream;
 
-            var cache = _backend.TryGetStreamLastEventNumber(streamId);
+            var cache = _cache.TryGetStreamLastEventNumber(streamId);
             if (cache.LastEventNumber != null)
             {
                 Interlocked.Increment(ref _cachedStreamInfo);
@@ -406,7 +379,7 @@ namespace EventStore.Core.Services.Storage.ReaderIndex
             // If version is not correct -- nothing is changed in cache.
             // This update is conditioned to not interfere with updating stream cache info by commit procedure
             // (which is the source of truth).
-            var res = _backend.UpdateStreamLastEventNumber(cache.Version, streamId, lastEventNumber);
+            var res = _cache.UpdateStreamLastEventNumber(cache.Version, streamId, lastEventNumber);
             return res ?? lastEventNumber;
         }
 
@@ -439,7 +412,7 @@ namespace EventStore.Core.Services.Storage.ReaderIndex
             if (SystemStreams.IsMetastream(streamId))
                 return _metastreamMetadata;
 
-            var cache = _backend.TryGetStreamMetadata(streamId);
+            var cache = _cache.TryGetStreamMetadata(streamId);
             if (cache.Metadata != null)
             {
                 Interlocked.Increment(ref _cachedStreamInfo);
@@ -453,7 +426,7 @@ namespace EventStore.Core.Services.Storage.ReaderIndex
             // If version is not correct -- nothing is changed in cache.
             // This update is conditioned to not interfere with updating stream cache info by commit procedure
             // (which is the source of truth).
-            var res = _backend.UpdateStreamMetadata(cache.Version, streamId, streamMetadata);
+            var res = _cache.UpdateStreamMetadata(cache.Version, streamId, streamMetadata);
             return res ?? streamMetadata;
         }
 

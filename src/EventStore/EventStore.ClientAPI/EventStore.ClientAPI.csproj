@@ -82,7 +82,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AllCheckpoint.cs" />
     <Compile Include="AllEventsSlice.cs" />
+    <Compile Include="Core\GossipSeedEndPointDiscoverer.cs" />
+    <Compile Include="Core\NodeEndPoints.cs" />
+    <Compile Include="StreamCheckpoint.cs" />
     <Compile Include="ClientAuthenticationFailedEventArgs.cs" />
     <Compile Include="ClientErrorEventArgs.cs" />
     <Compile Include="ClientOperations\CommitTransactionOperation.cs" />
@@ -106,6 +110,8 @@
     <Compile Include="Common\Utils\Json.cs" />
     <Compile Include="ClientClosedEventArgs.cs" />
     <Compile Include="ConnectionSettings.cs" />
+    <Compile Include="DnsClusterSettingsBuilder.cs" />
+    <Compile Include="GossipSeedClusterSettingsBuilder.cs" />
     <Compile Include="ConnectionSettingsBuilder.cs" />
     <Compile Include="ClusterSettings.cs" />
     <Compile Include="ClusterSettingsBuilder.cs" />

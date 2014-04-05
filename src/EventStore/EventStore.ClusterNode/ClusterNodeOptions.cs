@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using EventStore.Common.Options;
+using EventStore.Common.Utils;
 using EventStore.Core.Util;
 
 namespace EventStore.ClusterNode
@@ -29,7 +30,11 @@ namespace EventStore.ClusterNode
 
         public int CommitCount { get { return _helper.Get(() => CommitCount); } }
         public int PrepareCount { get { return _helper.Get(() => PrepareCount); } }
-        
+
+
+        public bool AdminOnExt { get { return _helper.Get(() => AdminOnExt); } }
+        public bool StatsOnExt { get { return _helper.Get(() => StatsOnExt); } }
+        public bool GossipOnExt { get { return _helper.Get(() => GossipOnExt); } }
         public bool DisableScavengeMerging { get { return _helper.Get(() => DisableScavengeMerging); } }
 
 		public bool DiscoverViaDns { get { return _helper.Get(() => DiscoverViaDns); } }
@@ -40,6 +45,8 @@ namespace EventStore.ClusterNode
         public int StatsPeriodSec { get { return _helper.Get(() => StatsPeriodSec); } }
         public int CachedChunks { get { return _helper.Get(() => CachedChunks); } }
         public long ChunksCacheSize { get { return _helper.Get(() => ChunksCacheSize); } }
+        public int MaxMemTableSize { get { return _helper.Get(() => MaxMemTableSize); } }
+        
 
         public string DbPath { get { return _helper.Get(() => DbPath); } }
         public bool InMemDb { get { return _helper.Get(() => InMemDb); } }
@@ -65,6 +72,8 @@ namespace EventStore.ClusterNode
 
 	    public int PrepareTimeoutMs { get { return _helper.Get(() => PrepareTimeoutMs); } }
         public int CommitTimeoutMs { get { return _helper.Get(() => CommitTimeoutMs); } }
+
+        public bool UnsafeDisableFlushToDisk { get { return _helper.Get(() => UnsafeDisableFlushToDisk); } }
 
         private readonly OptsHelper _helper;
 
@@ -92,7 +101,9 @@ namespace EventStore.ClusterNode
             
             _helper.Register(() => CommitCount, Opts.CommitCountCmd, Opts.CommitCountEnv, Opts.CommitCountJson, Opts.CommitCountDefault, Opts.CommitCountDescr);
             _helper.Register(() => PrepareCount, Opts.PrepareCountCmd, Opts.PrepareCountEnv, Opts.PrepareCountJson, Opts.PrepareCountDefault, Opts.PrepareCountDescr);
-			
+            _helper.Register(() => MaxMemTableSize, Opts.MaxMemTableSizeCmd, Opts.MaxMemTableSizeEnv, Opts.MaxMemTableSizeJson, Opts.MaxMemtableSizeDefault, Opts.MaxMemTableSizeDescr);
+            
+
 			_helper.Register(() => DiscoverViaDns, Opts.DiscoverViaDnsCmd, Opts.DiscoverViaDnsEnv, Opts.DiscoverViaDnsJson, Opts.DiscoverViaDnsDefault, Opts.DiscoverViaDnsDescr);
 			_helper.RegisterRef(() => ClusterDns, Opts.ClusterDnsCmd, Opts.ClusterDnsEnv, Opts.ClusterDnsJson, Opts.ClusterDnsDefault, Opts.ClusterDnsDescr);
 	        _helper.Register(() => ClusterGossipPort, Opts.ClusterGossipPortCmd, Opts.ClusterGossipPortEnv, Opts.ClusterGossipPortJson, Opts.ClusterGossipPortDefault, Opts.ClusterGossipPortDescr);
@@ -125,14 +136,19 @@ namespace EventStore.ClusterNode
 	        _helper.RegisterRef(() => AuthenticationType, Opts.AuthenticationTypeCmd, Opts.AuthenticationTypeEnv, Opts.AuthenticationTypeJson, Opts.AuthenticationTypeDefault, Opts.AuthenticationTypeDescr);
 	        _helper.RegisterRef(() => AuthenticationConfigFile, Opts.AuthenticationConfigFileCmd, Opts.AuthenticationConfigFileEnv, Opts.AuthenticationConfigFileJson, Opts.AuthenticationConfigFileDefault, Opts.AuthenticationConfigFileDescr);
 
+            _helper.Register(() => UnsafeDisableFlushToDisk, Opts.UnsafeDisableFlushToDiskCmd, Opts.UnsafeDisableFlushToDiskEnv, Opts.PrepareTimeoutMsJson, Opts.UnsafeDisableFlushToDiskDefault, Opts.UnsafeDisableFlushToDiskDescr);
             _helper.Register(() => PrepareTimeoutMs, Opts.PrepareTimeoutMsCmd, Opts.PrepareTimeoutMsEnv, Opts.PrepareTimeoutMsJson, Opts.PrepareTimeoutMsDefault, Opts.PrepareTimeoutMsDescr);
             _helper.Register(() => CommitTimeoutMs, Opts.CommitTimeoutMsCmd, Opts.CommitTimeoutMsEnv, Opts.CommitTimeoutMsJson, Opts.CommitTimeoutMsDefault, Opts.CommitTimeoutMsDescr);
             _helper.Register(() => DisableScavengeMerging, Opts.DisableScavengeMergeCmd, Opts.DisableScavengeMergeEnv, Opts.DisableScavengeMergeJson, Opts.DisableScavengeMergeDefault, Opts.DisableScavengeMergeDescr);
+            _helper.Register(() => GossipOnExt, Opts.GossipOnExtCmd, Opts.GossipOnExtEnv, Opts.GossipOnExtJson, Opts.GossipOnExtDefault, Opts.GossipOnExtDescr);
+            _helper.Register(() => StatsOnExt, Opts.StatsOnExtCmd, Opts.StatsOnExtEnv, Opts.StatsOnExtJson, Opts.StatsOnExtDefault, Opts.StatsOnExtDescr);
+            _helper.Register(() => AdminOnExt, Opts.AdminOnExtCmd, Opts.AdminOnExtEnv, Opts.AdminOnExtJson, Opts.AdminOnExtDefault, Opts.AdminOnExtDescr);
         }
 
-        public void Parse(params string[] args)
+        public bool Parse(params string[] args)
         {
-            _helper.Parse(args);
+            var result = _helper.Parse(args);
+            return result.IsEmpty();
         }
 
         public string DumpOptions()

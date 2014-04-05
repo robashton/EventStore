@@ -1,32 +1,4 @@
-﻿// Copyright (c) 2012, Event Store LLP
-// All rights reserved.
-// 
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
-// 
-// Redistributions of source code must retain the above copyright notice,
-// this list of conditions and the following disclaimer.
-// Redistributions in binary form must reproduce the above copyright
-// notice, this list of conditions and the following disclaimer in the
-// documentation and/or other materials provided with the distribution.
-// Neither the name of the Event Store LLP nor the names of its
-// contributors may be used to endorse or promote products derived from
-// this software without specific prior written permission
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-// HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
-
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -82,7 +54,7 @@ namespace EventStore.Core.Tests.Helpers
             IPEndPoint externalTcp, IPEndPoint externalTcpSec, IPEndPoint externalHttp, IPEndPoint[] gossipSeeds,
             ISubsystem[] subsystems = null, int? chunkSize = null, int? cachedChunkSize = null,
             bool enableTrustedAuth = false, bool skipInitializeStandardUsersCheck = true, int memTableSize = 1000,
-            bool inMemDb = true)
+            bool inMemDb = true, bool disableFlushToDisk = false)
         {
 //            if (_running) throw new Exception("Previous MiniNode is still running!!!");
             _running = true;
@@ -96,6 +68,7 @@ namespace EventStore.Core.Tests.Helpers
                     "mini-cluster-node-db-{0}-{1}-{2}", externalTcp.Port, externalTcpSec.Port, externalHttp.Port));
 
             Directory.CreateDirectory(_dbPath);
+            FileStreamExtensions.ConfigureFlush(disableFlushToDisk);
             Db =
                 new TFChunkDb(
                     CreateDbConfig(chunkSize ?? ChunkSize, _dbPath, cachedChunkSize ?? CachedChunkSize, inMemDb));
@@ -114,7 +87,8 @@ namespace EventStore.Core.Tests.Helpers
                 new[] {ExternalHttpEndPoint.ToHttpUrl()}, enableTrustedAuth, ssl_connections.GetCertificate(), 1, false,
                 "", gossipSeeds, TFConsts.MinFlushDelayMs, 3, 2, 2, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(2),
                 false, "", false, TimeSpan.FromHours(1), StatsStorage.None, 0,
-                new InternalAuthenticationProviderFactory(), true);
+                new InternalAuthenticationProviderFactory(), disableScavengeMerging: true, adminOnPublic: true, 
+                statsOnPublic: true, gossipOnPublic: true);
 
             Log.Info(
                 "\n{0,-25} {1} ({2}/{3}, {4})\n" + "{5,-25} {6} ({7})\n" + "{8,-25} {9} ({10}-bit)\n"

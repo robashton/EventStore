@@ -1,32 +1,4 @@
-﻿// Copyright (c) 2012, Event Store LLP
-// All rights reserved.
-//  
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
-//  
-// Redistributions of source code must retain the above copyright notice,
-// this list of conditions and the following disclaimer.
-// Redistributions in binary form must reproduce the above copyright
-// notice, this list of conditions and the following disclaimer in the
-// documentation and/or other materials provided with the distribution.
-// Neither the name of the Event Store LLP nor the names of its
-// contributors may be used to endorse or promote products derived from
-// this software without specific prior written permission
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-// HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//  
-
-using System;
+﻿using System;
 using System.Net;
 using EventStore.ClientAPI.Common.Utils;
 
@@ -68,7 +40,29 @@ namespace EventStore.ClientAPI
         /// </summary>
         public TimeSpan GossipTimeout;
 
-        internal ClusterSettings(string clusterDns, int maxDiscoverAttempts, int externalGossipPort, IPEndPoint[] gossipSeeds, TimeSpan gossipTimeout)
+        /// <summary>
+        /// Used if we're connecting with gossip seeds
+        /// </summary>
+        /// <param name="gossipSeeds">Endpoints for seeding gossip</param>
+        /// <param name="maxDiscoverAttempts">Maximum number of attempts to discover the cluster</param>
+        /// <param name="gossipTimeout">Timeout for cluster gossip</param>
+        internal ClusterSettings(IPEndPoint[] gossipSeeds, int maxDiscoverAttempts, TimeSpan gossipTimeout)
+        {
+            ClusterDns = "";
+            MaxDiscoverAttempts = maxDiscoverAttempts;
+            ExternalGossipPort = 0;
+            GossipTimeout = gossipTimeout;
+            GossipSeeds = gossipSeeds;
+        }
+
+        /// <summary>
+        /// Used if we're discovering via DNS
+        /// </summary>
+        /// <param name="clusterDns">The DNS name to use for discovering endpoints</param>
+        /// <param name="maxDiscoverAttempts">The maximum number of attempts for discovering endpoints</param>
+        /// <param name="externalGossipPort">The well-known endpoint on which cluster managers are running</param>
+        /// <param name="gossipTimeout">Timeout for cluster gossip</param>
+        internal ClusterSettings(string clusterDns, int maxDiscoverAttempts, int externalGossipPort, TimeSpan gossipTimeout)
         {
             Ensure.NotNullOrEmpty(clusterDns, "clusterDns");
             if (maxDiscoverAttempts < -1)
@@ -79,7 +73,7 @@ namespace EventStore.ClientAPI
             MaxDiscoverAttempts = maxDiscoverAttempts;
             ExternalGossipPort = externalGossipPort;
             GossipTimeout = gossipTimeout;
-            GossipSeeds = gossipSeeds;
+            GossipSeeds = new IPEndPoint[0];
         }
     }
 }

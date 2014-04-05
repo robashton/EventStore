@@ -1,31 +1,3 @@
-// Copyright (c) 2012, Event Store LLP
-// All rights reserved.
-// 
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
-// 
-// Redistributions of source code must retain the above copyright notice,
-// this list of conditions and the following disclaimer.
-// Redistributions in binary form must reproduce the above copyright
-// notice, this list of conditions and the following disclaimer in the
-// documentation and/or other materials provided with the distribution.
-// Neither the name of the Event Store LLP nor the names of its
-// contributors may be used to endorse or promote products derived from
-// this software without specific prior written permission
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-// HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
-
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -112,7 +84,7 @@ namespace EventStore.Projections.Core.Services.Http
                      HttpMethod.Delete, OnProjectionDelete, Codec.NoCodecs, SupportedCodecs);
             Register(service, "/projection/{name}/statistics",
                      HttpMethod.Get, OnProjectionStatisticsGet, Codec.NoCodecs, SupportedCodecs);
-            RegisterTextBody(service, "/projections/read-events",
+            Register(service, "/projections/read-events",
                      HttpMethod.Post, OnProjectionsReadEvents, SupportedCodecs, SupportedCodecs);
             Register(service, "/projection/{name}/state?partition={partition}",
                      HttpMethod.Get, OnProjectionStateGet, Codec.NoCodecs, SupportedCodecs);
@@ -139,7 +111,7 @@ namespace EventStore.Projections.Core.Services.Http
                     {
                         new KeyValuePair<string, string>(
                     "Location", new Uri(match.BaseUri, "/web/projections.htm").AbsoluteUri)
-                    }, Console.WriteLine);
+                    }, x => Log.DebugException(x, "Reply Text Content Failed."));
         }
 
         private void OnProjectionsGetAny(HttpEntityManager http, UriTemplateMatch match)
@@ -326,20 +298,32 @@ namespace EventStore.Projections.Core.Services.Http
             public int? MaxEvents { get; set; }
         }
 
-        private void OnProjectionsReadEvents(HttpEntityManager http, UriTemplateMatch match, string body)
+        private void OnProjectionsReadEvents(HttpEntityManager http, UriTemplateMatch match)
         {
             if (_httpForwarder.ForwardRequest(http))
                 return;
 
-            var bodyParsed = body.ParseJson<ReadEventsBody>();
-            var fromPosition = CheckpointTag.FromJson(new JTokenReader(bodyParsed.Position), new ProjectionVersion(0, 0, 0));
-
             var envelope = new SendToHttpEnvelope<FeedReaderMessage.FeedPage>(
                 _networkSendQueue, http, FeedPageFormatter, FeedPageConfigurator, ErrorsEnvelope(http));
 
-            Publish(
-                new FeedReaderMessage.ReadPage(
-                    Guid.NewGuid(), envelope, http.User, bodyParsed.Query, fromPosition.Tag, bodyParsed.MaxEvents ?? 10));
+            http.ReadTextRequestAsync(
+                (o, body) =>
+                    {
+                        var bodyParsed = body.ParseJson<ReadEventsBody>();
+                        var fromPosition = CheckpointTag.FromJson(
+                            new JTokenReader(bodyParsed.Position), new ProjectionVersion(0, 0, 0));
+
+
+                        Publish(
+                            new FeedReaderMessage.ReadPage(
+                                Guid.NewGuid(),
+                                envelope,
+                                http.User,
+                                bodyParsed.Query,
+                                fromPosition.Tag,
+                                bodyParsed.MaxEvents ?? 10));
+                    },
+                x => Log.DebugException(x, "Read Requet Body Failed."));
         }
 
         private void ProjectionsGet(HttpEntityManager http, UriTemplateMatch match, ProjectionMode? mode)
@@ -386,7 +370,7 @@ namespace EventStore.Projections.Core.Services.Http
                                 envelope, mode, name, runAs, handlerType, s, enabled: enabled,
                                 checkpointsEnabled: checkpointsEnabled, emitEnabled: emitEnabled, enableRunAs: true);
                         Publish(postMessage);
-                    }, Console.WriteLine);
+                    }, x => Log.DebugException(x, "Reply Text Body Failed."));
         }
 
         private ResponseConfiguration StateConfigurator(ICodec codec, ProjectionManagementMessage.ProjectionState state)

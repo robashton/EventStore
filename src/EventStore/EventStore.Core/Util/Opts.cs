@@ -1,31 +1,4 @@
-﻿// Copyright (c) 2012, Event Store LLP
-// All rights reserved.
-// 
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
-// 
-// Redistributions of source code must retain the above copyright notice,
-// this list of conditions and the following disclaimer.
-// Redistributions in binary form must reproduce the above copyright
-// notice, this list of conditions and the following disclaimer in the
-// documentation and/or other materials provided with the distribution.
-// Neither the name of the Event Store LLP nor the names of its
-// contributors may be used to endorse or promote products derived from
-// this software without specific prior written permission
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-// HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-using System.Net;
+﻿using System.Net;
 using EventStore.Common.Options;
 using EventStore.Core.TransactionLog.Chunks;
 
@@ -130,6 +103,13 @@ namespace EventStore.Core.Util
         public const string EnableTrustedAuthDescr = "Enables trusted authentication by an intermediary in the Http";
         public const bool EnableTrustedAuthDefault = false;
 
+
+        public const string MaxMemTableSizeCmd = "max-memtable-size";
+        public const string MaxMemTableSizeEnv = "MAX_MEMTABLE_SIZE";
+        public const string MaxMemTableSizeJson = "maxMemtableSize";
+        public const string MaxMemTableSizeDescr = "Adjusts the maximum size of a mem table.";
+        public const int MaxMemtableSizeDefault = 1000000;
+
         public const string SkipDbVerifyCmd = "do-not-verify-db-hashes-on-startup|skip-db-verify";
         public const string SkipDbVerifyEnv = "SKIP_DB_VERIFY";
         public const string SkipDbVerifyJson = "skipDbVerify";
@@ -159,6 +139,13 @@ namespace EventStore.Core.Util
         public const string HttpPrefixesJson = "httpPrefixes";
         public const string HttpPrefixesDescr = "The prefixes that the http server should respond to.";
         public static readonly string[] HttpPrefixesDefault = new string[0];
+
+
+        public const string UnsafeDisableFlushToDiskCmd = "unsafe-disable-flush-to-disk";
+        public const string UnsafeDisableFlushToDiskEnv = "UNSAFE_DISABLE_FLUSH_TO_DISK";
+        public const string UnsafeDisableFlushToDiskJson = "unsafeDisableFlushToDisk";
+        public const string UnsafeDisableFlushToDiskDescr = "Disable flushing to disk.  (UNSAFE: on power off)";
+        public static readonly bool UnsafeDisableFlushToDiskDefault = false; 
 
         public const string PrepareTimeoutMsCmd = "pt|prepare-timeout=";
         public const string PrepareTimeoutMsEnv = "PREPARE_TIMEOUT_MS";
@@ -226,6 +213,26 @@ namespace EventStore.Core.Util
         /*
          *  CLUSTER OPTIONS
          */
+
+
+        public const string AdminOnExtCmd = "admin-on-ext";
+        public const string AdminOnExtEnv = "ADMIN_ON_EXT";
+        public const string AdminOnExtJson = "adminOnExt";
+        public const string AdminOnExtDescr = "Whether or not to run the admin ui on the external http endpoint";
+        public const bool AdminOnExtDefault = true;
+
+        public const string GossipOnExtCmd = "gossip-on-ext";
+        public const string GossipOnExtEnv = "GOSSIP_ON_EXT";
+        public const string GossipOnExtJson = "gossipOnExt";
+        public const string GossipOnExtDescr = "Whether or not to accept gossip requests on the external http endpoint";
+        public const bool GossipOnExtDefault = true;
+
+        public const string StatsOnExtCmd = "stats-on-ext";
+        public const string StatsOnExtEnv = "STATS_ON_EXT";
+        public const string StatsOnExtJson = "statsOnExt";
+        public const string StatsOnExtDescr = "Whether or not to accept statistics requests on the external http endpoint, needed if you use admin ui";
+        public const bool StatsOnExtDefault = true;
+
         public const string InternalIpCmd = "int-ip|internal-ip=";
         public const string InternalIpEnv = "INT_IP";
         public const string InternalIpJson = "internalIp";

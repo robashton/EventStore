@@ -12,7 +12,7 @@ COPYRIGHT="Copyright 2012 Event Store LLP. All rights reserved."
 # to build V8's snapshot. The output paths also appear to be
 # different.
 
-#TODO: Figure out whether FreeBSD behaves like MacOS or like
+# TODO: Figure out whether FreeBSD behaves like MacOS or like
 # Linux.
 platform='unix'
 make='make'
@@ -20,7 +20,7 @@ if [[ `uname` == 'Linux' ]]; then
     make='make'
     unixtype='unix'
 elif [[ `uname` == 'FreeBSD' ]]; then
-    #TODO: Does FreeBSD behave like OS X or Linux?
+    # TODO: Does FreeBSD behave like OS X or Linux?
     make='gmake'
     unixtype='unix'
 elif [[ `uname` == 'Darwin' ]]; then
@@ -28,7 +28,7 @@ elif [[ `uname` == 'Darwin' ]]; then
     unixtype='mac'
 fi
 
-#------------ End of configuration -------------
+# ------------ End of configuration -------------
 
 function usage() {
     echo ""
@@ -231,6 +231,7 @@ function buildV8() {
         $make $makecall $WERRORSTRING library=shared || err
     fi
 
+    echo "Coping some crap" $fileext
     pushd ../src/EventStore/libs > /dev/null
     cp $v8OutputDir/libv8.$fileext . || err
     cp $v8OutputDir/libicui18n.$fileext . ||  err
@@ -240,9 +241,7 @@ function buildV8() {
         install_name_tool -id libv8.dylib libv8.dylib
         install_name_tool -id libicui18n.dylib libicui18n.dylib
         install_name_tool -id libicuuc.dylib libicuuc.dylib
-
         install_name_tool -change /usr/local/lib/libicuuc.dylib libicuuc.dylib libicui18n.dylib
-
         install_name_tool -change /usr/local/lib/libicuuc.dylib libicuuc.dylib libv8.dylib
         install_name_tool -change /usr/local/lib/libicui18n.dylib libicui18n.dylib libv8.dylib
     fi
@@ -257,23 +256,10 @@ function buildV8() {
     popd > /dev/null || err
 }
 
-function buildLucene() {
-  echo "whatever"
-	# TODO: Actually build lucene. Copying files here so I have a record of what I needed
-#	pushd clucene/bin > /dev/null
-#	cp libclucene-core.so ../../src/EventStore/libs || err
-#	cp libclucene-shared.so ../../src/EventStore/libs || err
-#	popd > /dev/null
-#
-#	pushd clucene/
-# Okay actually, there are header files all over the show, probably easier to just set up locations
-
-}
-
 function buildJS1() {
     currentDir=$(pwd -P)
-    includeString="-I $currentDir/src/EventStore/libs/include -I $currentDir/clucene/src/shared -I $currentDir/clucene/src/contribs-lib -I $currentDir/clucene/src/core -I $currentDir/jsoncpp/jsoncpp/include"
-    libsString="-L $currentDir/src/EventStore/libs -L $currentDir/clucene/bin -L $currentDir/jsoncpp/jsoncpp/lib"
+    includeString="-I $currentDir/src/EventStore/libs/include"
+    libsString="-L $currentDir/src/EventStore/libs"
     outputDir="$currentDir/src/EventStore/libs"
 
     pushd $currentDir/src/EventStore/EventStore.Projections.v8Integration/ > /dev/null || err
@@ -290,8 +276,7 @@ function buildJS1() {
         outputObj=$outputDir/libjs1.so
     fi
 
-
-    g++ $includeString $libsString *.cpp -o $outputObj $gccArch -lv8 -lclucene-core -lclucene-shared -ljsoncpp  -O2 -fPIC --shared --save-temps -std=c++0x || err
+    g++ $includeString $libsString *.cpp -o $outputObj $gccArch -lv8 -O2 -fPIC --shared --save-temps -std=c++0x || err
 
     if [[ "$unixtype" == "mac" ]] ; then
         pushd $outputDir > /dev/null || err
@@ -368,10 +353,10 @@ function patchVersionInfo {
     do
         tempfile="$file.tmp"
 	sed -e "s/$versionPattern/$newVersion/" \
-	    -e "s/$branchPattern/$newBranch/" \
-	    -e "s/$commitHashPattern/$newCommitHash/" \
-	    -e "s/$timestampPattern/$newTimestamp/" \
-	    $file > $tempfile
+        -e "s/$branchPattern/$newBranch/" \
+        -e "s/$commitHashPattern/$newCommitHash/" \
+        -e "s/$timestampPattern/$newTimestamp/" \
+        $file > $tempfile
 
         mv $tempfile $file
 	echo "Patched $file with version information"
@@ -421,8 +406,9 @@ else
         buildJS1
         buildEventStore
     else
-        [[ -f src/EventStore/libs/libv8.so ]] || exitWithError "Cannot find libv8.so - cannot do a quick build!"
-        [[ -f src/EventStore/libs/libjs1.so ]] || exitWithError "Cannot find libjs1.so - cannot do a quick build!"
+        [[ -f src/EventStore/libs/libv8.so ]] || [[ -f src/EventStore/libs/libv8.dylib ]] || exitWithError "Cannot find libv8.[so|dylib] - in src/EventStore/libs/ so cannot do a quick build!"
+        [[ -f src/EventStore/libs/libicui18n.so ]] || [[ -f src/EventStore/libs/libicui18n.dylib ]] || exitWithError "Cannot find libicui18n.[so|dylib] - in src/EventStore/libs/ so cannot do a quick build!"
+        [[ -f src/EventStore/libs/libjs1.so ]] || [[ -f src/EventStore/libs/libjs1.dylib ]] || exitWithError "Cannot find libjs1.[so|dylib] - at src/EventStore/libs/ so cannot do a quick build!"
 
         buildEventStore
     fi

@@ -72,6 +72,7 @@ namespace EventStore.ClusterNode
                 throw new Exception(string.Format("Couldn't acquire exclusive Cluster Node mutex '{0}'.", _clusterNodeMutex.MutexName));
 
             var dbConfig = CreateDbConfig(dbPath, opts.CachedChunks, opts.ChunksCacheSize, opts.InMemDb);
+            FileStreamExtensions.ConfigureFlush(disableFlushToDisk: opts.UnsafeDisableFlushToDisk);
             var db = new TFChunkDb(dbConfig);
             var vNodeSettings = GetClusterVNodeSettings(opts);
 
@@ -120,8 +121,8 @@ namespace EventStore.ClusterNode
                 ? new[] {NodeSubsystems.Projections}
                 : new NodeSubsystems[0];
             _projections = new Projections.Core.ProjectionsSubsystem(opts.ProjectionThreads, opts.RunProjections);
-            _node = new ClusterVNode(db, vNodeSettings, gossipSeedSource, dbVerifyHashes, ESConsts.MemTableEntryCount, _projections);
-            RegisterWebControllers(enabledNodeSubsystems);
+            _node = new ClusterVNode(db, vNodeSettings, gossipSeedSource, dbVerifyHashes, opts.MaxMemTableSize, _projections);
+            RegisterWebControllers(enabledNodeSubsystems, vNodeSettings);
             RegisterUiProjections();
         }
 
@@ -131,12 +132,16 @@ namespace EventStore.ClusterNode
             _node.MainBus.Subscribe(users);
         }
 
-        private void RegisterWebControllers(NodeSubsystems[] enabledNodeSubsystems)
+        private void RegisterWebControllers(NodeSubsystems[] enabledNodeSubsystems, ClusterVNodeSettings settings)
         {
             _node.InternalHttpService.SetupController(new ClusterWebUIController(_node.MainQueue, enabledNodeSubsystems));
-            _node.ExternalHttpService.SetupController(new ClusterWebUIController(_node.MainQueue, enabledNodeSubsystems));
             _node.InternalHttpService.SetupController(new UsersWebController(_node.MainQueue));
-            _node.ExternalHttpService.SetupController(new UsersWebController(_node.MainQueue));
+            if (settings.AdminOnPublic)
+            {
+                _node.ExternalHttpService.SetupController(
+                    new ClusterWebUIController(_node.MainQueue, enabledNodeSubsystems));
+                _node.ExternalHttpService.SetupController(new UsersWebController(_node.MainQueue));
+            }
         }
 
         private static int GetQuorumSize(int clusterSize)
@@ -188,7 +193,8 @@ namespace EventStore.ClusterNode
 	                                        TimeSpan.FromMilliseconds(options.CommitTimeoutMs),
 	                                        options.UseInternalSsl, options.SslTargetHost, options.SslValidateServer,
 	                                        TimeSpan.FromSeconds(options.StatsPeriodSec), StatsStorage.StreamAndCsv,
-											options.NodePriority, authenticationProviderFactory, options.DisableScavengeMerging);
+											options.NodePriority, authenticationProviderFactory, options.DisableScavengeMerging,
+                                            options.AdminOnExt, options.StatsOnExt, options.GossipOnExt);
         }
 
 	    private static IAuthenticationProviderFactory GetAuthenticationProviderFactory(string authenticationType, string authenticationConfigFile)
