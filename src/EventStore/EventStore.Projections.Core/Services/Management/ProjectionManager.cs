@@ -47,7 +47,7 @@ namespace EventStore.Projections.Core.Services.Management
                                      IHandle<CoreProjectionManagementMessage.Prepared>,
                                      IHandle<CoreProjectionManagementMessage.StateReport>,
                                      IHandle<CoreProjectionManagementMessage.ResultReport>,
-                                     IHandle<CoreProjectionManagementMessage.StatisticsReport>, 
+                                     IHandle<CoreProjectionManagementMessage.StatisticsReport>,
                                      IHandle<CoreProjectionManagementMessage.SlaveProjectionReaderAssigned>,
                                      IHandle<ProjectionManagementMessage.RegisterSystemProjection>
     {
@@ -338,10 +338,10 @@ namespace EventStore.Projections.Core.Services.Management
                 var statuses = (from projectionNameValue in _projections
                                 let projection = projectionNameValue.Value
                                 where !projection.Deleted
-                                where 
-                                    message.Mode == null || 
-                                    message.Mode == projection.GetMode() || 
-                                    (message.Mode.GetValueOrDefault() == ProjectionMode.AllNonTransient 
+                                where
+                                    message.Mode == null ||
+                                    message.Mode == projection.GetMode() ||
+                                    (message.Mode.GetValueOrDefault() == ProjectionMode.AllNonTransient
                                         && projection.GetMode() != ProjectionMode.Transient)
                                 let status = projection.GetStatistics()
                                 select status).ToArray();
@@ -539,7 +539,7 @@ namespace EventStore.Projections.Core.Services.Management
             _readDispatcher.Publish(
                 new ClientMessage.ReadStreamEventsBackward(
                     corrId, corrId, _readDispatcher.Envelope, "$projections-$all", from, _readEventsBatchSize,
-                    resolveLinkTos: false, requireMaster: false, validationStreamVersion: null, user: SystemAccount.Principal), 
+                    resolveLinkTos: false, requireMaster: false, validationStreamVersion: null, user: SystemAccount.Principal),
                 m => LoadProjectionListCompleted(m, from, completedAction));
         }
 
@@ -620,7 +620,7 @@ namespace EventStore.Projections.Core.Services.Management
                 new ClientMessage.WriteEvents(
                     corrId, corrId, _writeDispatcher.Envelope, true, "$projections-$all", ExpectedVersion.NoStream,
                     new Event(Guid.NewGuid(), "$ProjectionsInitialized", false, Empty.ByteArray, Empty.ByteArray),
-                    SystemAccount.Principal), 
+                    SystemAccount.Principal),
                 completed => WriteFakeProjectionCompleted(completed, action));
         }
 
@@ -649,8 +649,8 @@ namespace EventStore.Projections.Core.Services.Management
             {
                 CreateSystemProjection(ProjectionNamesBuilder.StandardProjections.StreamsStandardProjection, typeof (IndexStreams), "");
                 CreateSystemProjection(ProjectionNamesBuilder.StandardProjections.StreamByCategoryStandardProjection, typeof (CategorizeStreamByPath), "first\r\n-");
-                CreateSystemProjection(ProjectionNamesBuilder.StandardProjections.StreamByCategoryStandardProjection, typeof (CategorizeStreamByPath), "-");
                 CreateSystemProjection(ProjectionNamesBuilder.StandardProjections.EventByCategoryStandardProjection, typeof (CategorizeEventsByStreamPath), "-");
+                CreateSystemProjection(ProjectionNamesBuilder.StandardProjections.IndexPartitioning, typeof (IndexPartitioning), "");
                 CreateSystemProjection(ProjectionNamesBuilder.StandardProjections.EventByTypeStandardProjection, typeof (IndexEventsByEventType), "");
             }
         }

@@ -258,8 +258,8 @@ function buildV8() {
 
 function buildJS1() {
     currentDir=$(pwd -P)
-    includeString="-I $currentDir/src/EventStore/libs/include"
-    libsString="-L $currentDir/src/EventStore/libs"
+    includeString="-I $currentDir/src/EventStore/libs/include -I $currentDir/clucene/src/core -I $currentDir/jsoncpp/jsoncpp/include -I $currentDir/clucene/src/shared -I $currentDir/clucene/src/contribs-lib"
+    libsString="-L $currentDir/src/EventStore/libs -L $currentDir/clucene/bin -L $currentDir/jsoncpp/jsoncpp/lib"
     outputDir="$currentDir/src/EventStore/libs"
 
     pushd $currentDir/src/EventStore/EventStore.Projections.v8Integration/ > /dev/null || err
@@ -276,7 +276,7 @@ function buildJS1() {
         outputObj=$outputDir/libjs1.so
     fi
 
-    g++ $includeString $libsString *.cpp -o $outputObj $gccArch -lv8 -O2 -fPIC --shared --save-temps -std=c++0x || err
+    g++ $includeString $libsString *.cpp -o $outputObj $gccArch -lv8 -lclucene-core -ljsoncpp -O2 -fPIC --shared --save-temps -std=c++0x || err
 
     if [[ "$unixtype" == "mac" ]] ; then
         pushd $outputDir > /dev/null || err
